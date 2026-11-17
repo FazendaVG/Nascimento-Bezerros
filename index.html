@@ -74,7 +74,7 @@
     .alert-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
     .alert-success { background: #064e3b; color: #86efac; border: 1px solid #065f46; }
 
-    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
     .metric-card { background: #262626; border: 1px solid #3f3f46; padding: 10px; border-radius: 8px; text-align: center; }
     .metric-card h3 { margin: 0; font-size: 1.2rem; color: #22c55e; }
     .metric-card p { margin: 4px 0 0 0; font-size: 0.7rem; color: #a1a1aa; font-weight: 600; }
@@ -127,6 +127,11 @@
     @media (max-width: 899px) { #btnTelaCheia { display: none; } }
     .check-gemeos { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; }
     .check-gemeos input { width: 22px; height: 22px; padding: 0; flex: none; }
+    .table-container { overflow-x: auto; }
+    tr.nao-conf td { background: rgba(251,191,36,0.07); }
+    tr.nao-conf td:first-child { box-shadow: inset 3px 0 0 #fbbf24; }
+    .btn-conf { font-size: 1.15rem; }
+    #cardPend h3 { color: #fbbf24; }
   </style>
 </head>
 <body>
@@ -301,6 +306,10 @@
       <button class="main-btn" id="btnAtualizar" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
       <button class="main-btn" style="background: #dc2626; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="exportarRelatorioPDF()">📄 Baixar PDF</button>
     </div>
+    <div class="action-buttons">
+      <button class="main-btn" style="font-size: 0.8rem; padding: 10px;" onclick="conferirFiltrados()">✅ Conferir todos os filtrados</button>
+      <button class="main-btn" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="exportarCSV()">📥 Baixar CSV</button>
+    </div>
 
     <div class="metrics-grid">
       <div class="metric-card">
@@ -314,6 +323,10 @@
       <div class="metric-card">
         <h3 id="totalFemeas">0</h3>
         <p>Fêmeas</p>
+      </div>
+      <div class="metric-card" id="cardPend">
+        <h3 id="totalPendentes">0</h3>
+        <p>Não conferidos</p>
       </div>
     </div>
 
@@ -349,7 +362,15 @@
         </div>
       </div>
 
-      <div class="filters-row" style="grid-template-columns: 1fr;">
+      <div class="filters-row">
+        <div>
+          <label>Conferência:</label>
+          <select id="filtroConferencia" onchange="aplicarFiltrosEOrdenacao()">
+            <option value="" style="color:#000;">Todos</option>
+            <option value="nao" style="color:#000;">Não conferidos</option>
+            <option value="sim" style="color:#000;">Conferidos</option>
+          </select>
+        </div>
         <div>
           <label>Ordenar Relatório por:</label>
           <select id="ordenacaoSelect" onchange="aplicarFiltrosEOrdenacao()">
@@ -368,6 +389,7 @@
       <table id="tabelaRelatorio">
         <thead>
           <tr>
+            <th>Conf.</th>
             <th>Data</th>
             <th>Vaca</th>
             <th>Bezerro</th>
@@ -806,6 +828,7 @@
     $('filtroDataFim').value = "";
     $('filtroBrinco').value = "";
     $('filtroSexo').value = "";
+    $('filtroConferencia').value = "";
     $('ordenacaoSelect').value = "data_desc";
     aplicarFiltrosEOrdenacao();
   }
@@ -815,6 +838,7 @@
     const dataFim = $('filtroDataFim').value;
     const termo = $('filtroBrinco').value.trim().toUpperCase();
     const filtroSexo = $('filtroSexo').value;
+    const filtroConf = $('filtroConferencia').value;
     const ordem = $('ordenacaoSelect').value;
 
     const resultado = registrosAdmin.filter(r => {
@@ -822,7 +846,8 @@
       const okFim = !dataFim || (r.dataNascimento && r.dataNascimento <= dataFim);
       const okBrinco = termo === "" || String(r.brincoBezerro).toUpperCase().includes(termo) || String(r.brincoVaca).toUpperCase().includes(termo);
       const okSexo = filtroSexo === "" || r.sexo === filtroSexo;
-      return okIni && okFim && okBrinco && okSexo;
+      const okConf = filtroConf === "" || (filtroConf === "sim") === (r.conferido === 'Sim');
+      return okIni && okFim && okBrinco && okSexo && okConf;
     });
 
     const num = { numeric: true };
@@ -838,6 +863,7 @@
     $('totalNascimentos').textContent = resultado.length;
     $('totalMachos').textContent = resultado.filter(r => r.sexo === 'Macho').length;
     $('totalFemeas').textContent = resultado.filter(r => r.sexo === 'Fêmea').length;
+    $('totalPendentes').textContent = resultado.filter(r => r.conferido !== 'Sim').length;
 
     renderizarTabelaEscritorio(resultado);
     renderizarGrafico(resultado);   // agora o gráfico acompanha os filtros
@@ -846,11 +872,12 @@
   function renderizarTabelaEscritorio(registros) {
     const tbody = $('corpoTabela');
     if (registros.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum registro encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhum registro encontrado.</td></tr>`;
       return;
     }
     tbody.innerHTML = registros.map(r => `
-      <tr>
+      <tr class="${r.conferido === 'Sim' ? '' : 'nao-conf'}">
+        <td><button class="btn-icone btn-conf" data-acao="conferir" data-id="${esc(r.id)}" title="${r.conferido === 'Sim' ? 'Conferido em ' + esc(r.conferidoEm) + ' (toque para desfazer)' : 'Não conferido (toque para conferir)'}">${r.conferido === 'Sim' ? '✅' : '⬜'}</button></td>
         <td>${esc(formatarDataBR(r.dataNascimento))}</td>
         <td>${esc(r.brincoVaca)}</td>
         <td><b>${esc(r.brincoBezerro)}</b>${r.gemeos === 'Sim' ? ' 👯' : ''}</td>
@@ -868,6 +895,7 @@
     const b = e.target.closest('button[data-acao]');
     if (!b) return;
     if (b.dataset.acao === 'editar') abrirEdicao(b.dataset.id);
+    else if (b.dataset.acao === 'conferir') alternarConferencia(b.dataset.id);
     else excluirRegistro(b.dataset.id);
   });
 
@@ -932,6 +960,50 @@
     } catch (e) {
       alert("Sem conexão. Não foi possível excluir.");
     }
+  }
+
+  // ---------- conferência ----------
+  async function aplicarConferencia(ids, marcar) {
+    const agora = marcar ? new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    const antes = registrosAdmin.filter(r => ids.includes(r.id)).map(r => ({ r, c: r.conferido, e: r.conferidoEm }));
+    antes.forEach(a => { a.r.conferido = marcar ? 'Sim' : ''; a.r.conferidoEm = agora; });
+    aplicarFiltrosEOrdenacao();
+    try {
+      const res = await api({ acao: 'conferir', senha: senhaAdmin, ids, valor: marcar });
+      if (res.status !== 'sucesso') throw res;
+    } catch (e) {
+      antes.forEach(a => { a.r.conferido = a.c; a.r.conferidoEm = a.e; });
+      aplicarFiltrosEOrdenacao();
+      if (e && e.codigo === 'senha') sessaoExpirada();
+      else alert("Não foi possível salvar a conferência. Verifique a internet e tente de novo.");
+    }
+  }
+  function alternarConferencia(id) {
+    const r = registrosAdmin.find(x => x.id === id);
+    if (r) aplicarConferencia([id], r.conferido !== 'Sim');
+  }
+  function conferirFiltrados() {
+    const ids = registrosFiltradosAtuais.filter(r => r.conferido !== 'Sim').map(r => r.id);
+    if (!ids.length) { alert("Não há registros pendentes na lista atual."); return; }
+    if (!confirm(`Marcar ${ids.length} registro(s) da lista atual como CONFERIDO(S)?`)) return;
+    aplicarConferencia(ids, true);
+  }
+
+  // ---------- CSV (abre no Excel) ----------
+  function exportarCSV() {
+    if (!registrosFiltradosAtuais.length) { alert("Não há dados para exportar."); return; }
+    const cel = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const linhas = [["Data Nascimento", "Brinco Vaca", "Brinco Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Observações", "Conferido"]];
+    registrosFiltradosAtuais.forEach(r => linhas.push([
+      formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao,
+      r.gemeos === 'Sim' ? 'Sim' : 'Não', r.observacoes, r.conferido === 'Sim' ? 'Sim' : 'Não'
+    ]));
+    const csv = '\ufeff' + linhas.map(l => l.map(cel).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'nascimentos_volta_grande.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
   // ---------- PDF ----------
