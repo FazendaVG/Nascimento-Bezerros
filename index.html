@@ -4,8 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fazenda Volta Grande - Controle de Nascimentos</title>
+  
+  <!-- Linhas para transformar em App com a sua logo -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
   <!-- Chart.js para os gráficos -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- Biblioteca jsPDF para gerar PDFs direto no navegador -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -21,14 +29,8 @@
     }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; padding: 12px; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 520px; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; }
     
-    /* Container dinâmico: compacto no celular/capa, expandido no painel de gestão */
-    .container { width: 100%; max-width: 520px; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; transition: max-width 0.3s ease; }
-    .container.full-width { max-width: 95vw; width: 95vw; padding: 24px; }
-
-    .view-section { display: none; width: 100%; }
-    .view-section.active { display: block; }
-
     #telaCapa { text-align: center; padding: 10px 0; }
     .logo-img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     #telaCapa h1 { font-size: 1.5rem; color: #fff; margin: 0 0 6px 0; }
@@ -72,38 +74,51 @@
     .alert-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
     .alert-success { background: #064e3b; color: #86efac; border: 1px solid #065f46; }
 
-    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-    .metric-card { background: #262626; border: 1px solid #3f3f46; padding: 14px; border-radius: 8px; text-align: center; }
-    .metric-card h3 { margin: 0; font-size: 1.5rem; color: #22c55e; }
-    .metric-card p { margin: 4px 0 0 0; font-size: 0.8rem; color: #a1a1aa; font-weight: 600; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .metric-card { background: #262626; border: 1px solid #3f3f46; padding: 10px; border-radius: 8px; text-align: center; }
+    .metric-card h3 { margin: 0; font-size: 1.2rem; color: #22c55e; }
+    .metric-card p { margin: 4px 0 0 0; font-size: 0.7rem; color: #a1a1aa; font-weight: 600; }
 
-    .filters-box { background: #262626; padding: 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #3f3f46; }
-    .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px; }
-    .filters-box label { font-size: 0.8rem; color: #a1a1aa; margin-bottom: 3px; }
-    .filters-box input, .filters-box select { padding: 10px; font-size: 0.9rem; }
-    .btn-limpar-filtros { background: #3f3f46; color: #e4e4e7; border: none; border-radius: 6px; padding: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; width: 100%; }
+    .filters-box { background: #262626; padding: 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #3f3f46; }
+    .filters-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .filters-row:last-child { margin-bottom: 0; }
+    .filters-box label { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 3px; }
+    .filters-box input, .filters-box select { padding: 8px; font-size: 0.85rem; }
+    .btn-limpar-filtros { background: #3f3f46; color: #e4e4e7; border: none; border-radius: 6px; padding: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
     
-    .action-buttons { display: flex; gap: 10px; margin-bottom: 16px; }
-    .action-buttons button { width: auto; padding: 10px 20px; }
+    .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 
-    .table-container { max-height: 450px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; }
-    th, td { padding: 12px 16px; border-bottom: 1px solid #3f3f46; color: #e4e4e7; }
-    th { background: #27272a; position: sticky; top: 0; z-index: 10; }
+    .table-container { max-height: 280px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+    th, td { padding: 8px; border-bottom: 1px solid #3f3f46; color: #e4e4e7; }
+    th { background: #27272a; position: sticky; top: 0; }
 
-    .chart-container { position: relative; height: 260px; margin: 16px 0; background: #262626; padding: 14px; border-radius: 8px; border: 1px solid #3f3f46; }
+    .chart-container { position: relative; height: 190px; margin: 14px 0; background: #262626; padding: 10px; border-radius: 8px; border: 1px solid #3f3f46; }
     
     .aba-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
     .aba-toggle button { flex: 1; padding: 10px; border: 1px solid #4b5563; background: #2a2a2a; color: #9ca3af; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
     .aba-toggle button.active { background: #22c55e; color: #000; border-color: #22c55e; }
+
+    .alert-warn { background: #78350f; color: #fcd34d; border: 1px solid #92400e; }
+    #syncStatus { cursor: pointer; }
+    #syncStatus.offline { color: #fbbf24; }
+    tr.pendente td { color: #fbbf24; }
+    .erro-lista { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; border-radius: 8px; padding: 10px; margin-bottom: 14px; font-size: 0.8rem; }
+    .erro-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+    .btn-icone { background: none; border: none; color: inherit; font-size: 1rem; cursor: pointer; padding: 4px; }
+    .erro-item .btn-icone { font-size: 0.75rem; text-decoration: underline; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 50; padding: 12px; overflow-y: auto; }
+    .modal-overlay.aberto { display: flex; }
+    .modal { width: 100%; max-width: 480px; background: var(--card); border: 1px solid #3f3f46; border-radius: 16px; padding: 20px; margin: auto; }
+    .modal-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
   </style>
 </head>
 <body>
 
-<div class="container" id="mainContainer">
+<div class="container">
 
   <!-- ================= TELA DE CAPA (INICIAL) ================= -->
-  <div id="telaCapa" class="view-section active">
+  <div id="telaCapa">
     <img src="logo.png" alt="Fazenda Volta Grande" class="logo-img">
     <h1>Fazenda Volta Grande</h1>
     <p>Controle de Nascimentos</p>
@@ -113,7 +128,7 @@
   </div>
 
   <!-- ================= ABA CAMPO (VAQUEIRO) ================= -->
-  <div id="secaoCampo" class="view-section">
+  <div id="secaoCampo" style="display: none;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
       <span style="font-size: 0.85rem; font-weight: 700; color: #22c55e;">Modo Vaqueiro</span>
@@ -127,8 +142,9 @@
     <!-- Sub-aba: Novo Lançamento -->
     <div id="subAbaNovo">
       <h2>Registro de Nascimento</h2>
-      <div class="subtitle" id="syncStatus">Conectando...</div>
+      <div class="subtitle" id="syncStatus" onclick="sincronizarSistema()">Conectando...</div>
       <div id="alertBoxCampo" class="alert"></div>
+      <div id="boxErros"></div>
 
       <form id="nascimentoForm">
         <div class="form-group">
@@ -217,7 +233,7 @@
   </div>
 
   <!-- ================= TELA DE LOGIN ESCRITÓRIO ================= -->
-  <div id="secaoLogin" class="view-section">
+  <div id="secaoLogin" style="display: none; text-align: center;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
       <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Área Restrita</span>
@@ -228,21 +244,21 @@
     <div class="form-group" style="text-align: left; margin-top: 20px;">
       <input type="password" id="senhaInput" placeholder="Senha de acesso">
     </div>
-    <button class="main-btn" style="background: #38bdf8; color: #000;" onclick="fazerLogin()">Entrar no Painel</button>
+    <button class="main-btn" id="btnLogin" style="background: #38bdf8; color: #000;" onclick="fazerLogin()">Entrar no Painel</button>
     <div id="erroLogin" style="color: var(--danger); font-size: 0.85rem; margin-top: 12px;"></div>
   </div>
 
   <!-- ================= PAINEL GERENCIAL DO ESCRITÓRIO ================= -->
-  <div id="secaoEscritorio" class="view-section">
+  <div id="secaoEscritorio" style="display: none;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Sair do Painel</button>
-      <span style="font-size: 1rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande</span>
+      <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande</span>
     </div>
-    <h2 style="font-size: 1.5rem; margin-bottom: 20px;">Relatórios e Gráficos</h2>
+    <h2>Relatórios e Gráficos</h2>
     
     <div class="action-buttons">
-      <button class="main-btn" id="btnAtualizar" style="background: #374151; color: #fff; font-size: 0.9rem;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
-      <button class="main-btn" style="background: #dc2626; color: #fff; font-size: 0.9rem;" onclick="exportarRelatorioPDF()">📄 Baixar PDF</button>
+      <button class="main-btn" id="btnAtualizar" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
+      <button class="main-btn" style="background: #dc2626; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="exportarRelatorioPDF()">📄 Baixar PDF</button>
     </div>
 
     <div class="metrics-grid">
@@ -264,9 +280,9 @@
       <canvas id="graficoMes"></canvas>
     </div>
 
-    <!-- Filtros e Ordenação Expandidos -->
+    <!-- Filtros e Ordenação -->
     <div class="filters-box">
-      <div class="filters-grid">
+      <div class="filters-row">
         <div>
           <label>Data Inicial:</label>
           <input type="date" id="filtroDataInicio" onchange="aplicarFiltrosEOrdenacao()">
@@ -275,6 +291,9 @@
           <label>Data Final:</label>
           <input type="date" id="filtroDataFim" onchange="aplicarFiltrosEOrdenacao()">
         </div>
+      </div>
+
+      <div class="filters-row">
         <div>
           <label>Brinco (Vaca ou Bezerro):</label>
           <input type="text" id="filtroBrinco" placeholder="Ex: 502" oninput="aplicarFiltrosEOrdenacao()">
@@ -287,6 +306,9 @@
             <option value="Fêmea" style="color:#000;">Fêmea</option>
           </select>
         </div>
+      </div>
+
+      <div class="filters-row" style="grid-template-columns: 1fr;">
         <div>
           <label>Ordenar Relatório por:</label>
           <select id="ordenacaoSelect" onchange="aplicarFiltrosEOrdenacao()">
@@ -296,10 +318,9 @@
             <option value="vaca_asc" style="color:#000;">Nº Brinco Vaca (Crescente)</option>
           </select>
         </div>
-        <div style="display: flex; align-items: flex-end;">
-          <button class="btn-limpar-filtros" onclick="limparFiltrosEscritorio()">Limpar Filtros</button>
-        </div>
       </div>
+
+      <button class="btn-limpar-filtros" onclick="limparFiltrosEscritorio()">Limpar Filtros</button>
     </div>
 
     <div class="table-container">
@@ -312,6 +333,7 @@
             <th>Sexo</th>
             <th>Raça</th>
             <th>Situação</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="corpoTabela"></tbody>
@@ -321,100 +343,558 @@
 
 </div>
 
+
+<!-- ================= MODAL DE EDIÇÃO (ESCRITÓRIO) ================= -->
+<div class="modal-overlay" id="modalEditar">
+  <div class="modal">
+    <h2>Editar registro</h2>
+    <input type="hidden" id="mId">
+    <div class="form-group"><label for="mVaca">Brinco da Vaca</label><input type="text" id="mVaca" autocomplete="off"></div>
+    <div class="form-group"><label for="mBezerro">Brinco do Bezerro</label><input type="text" id="mBezerro" autocomplete="off"></div>
+    <div class="form-group"><label for="mSexo">Sexo</label>
+      <select id="mSexo"><option value="Macho" style="color:#000;">Macho</option><option value="Fêmea" style="color:#000;">Fêmea</option></select></div>
+    <div class="form-group"><label for="mRaca">Raça</label><select id="mRaca"></select></div>
+    <div class="form-group"><label for="mData">Data de Nascimento</label><input type="date" id="mData"></div>
+    <div class="form-group"><label for="mSituacao">Situação</label><select id="mSituacao"></select></div>
+    <div class="form-group"><label for="mObs">Observações</label><textarea id="mObs" rows="2"></textarea></div>
+    <div id="erroModal" style="color: var(--danger); font-size: 0.85rem;"></div>
+    <div class="modal-acoes">
+      <button class="main-btn" style="background:#374151;color:#fff;" onclick="fecharEdicao()">Cancelar</button>
+      <button class="main-btn" id="btnSalvarEdicao" onclick="salvarEdicao()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // =========================================================================
   // CONFIGURAÇÕES GERAIS
+  // A senha do escritório NÃO fica mais aqui: ela é conferida no Apps Script.
   // =========================================================================
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9GdVnwJIZdmtNNkrmYZssO0i9DkmDlMJiZXKSa5LJP7GS1Tkk9qyjErLiu19CLmlc/exec";
-  const SENHA_ESCRITORIO = "bezerro123";
+
+  const LS_CACHE = 'vg_cache', LS_FILA = 'vg_fila', LS_ERROS = 'vg_erros', SS_SENHA = 'vg_senha';
 
   let brincosEmUso = new Set();
-  let todosRegistros = [];
+  let todosRegistros = [];      // lista pública (modo vaqueiro)
+  let registrosAdmin = [];      // lista completa, só em memória (painel)
   let registrosFiltradosAtuais = [];
   let meuGrafico = null;
+  let online = navigator.onLine;
+  let enviando = false;
+  let senhaAdmin = sessionStorage.getItem(SS_SENHA) || "";
 
-  document.getElementById('dataNascimento').valueAsDate = new Date();
+  // ---------- utilitários ----------
+  const $ = id => document.getElementById(id);
+  function lerLS(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+  function gravarLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function hojeISO() {
+    const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  }
+  function novoId() {
+    return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+  }
+  function formatarDataBR(dataIso) {
+    if (!dataIso) return "";
+    const p = dataIso.split("-");
+    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataIso;
+  }
+  async function api(corpo) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const r = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(corpo), signal: ctrl.signal });
+      return await r.json();
+    } finally { clearTimeout(t); }
+  }
 
+  // Data de hoje (horário local) e não permite data futura
+  $('dataNascimento').value = hojeISO();
+  $('dataNascimento').max = hojeISO();
+
+  // Service Worker (app abre sem internet)
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
   }
 
-  function alternarTela(idAtivo, expandir = false) {
-    const container = document.getElementById('mainContainer');
-    if (expandir) {
-      container.classList.add('full-width');
-    } else {
-      container.classList.remove('full-width');
-    }
-
-    document.querySelectorAll('.view-section').forEach(sec => {
-      sec.classList.remove('active');
-    });
-
-    document.getElementById(idAtivo).classList.add('active');
+  // ---------- navegação ----------
+  function mostrarSecao(qual) {
+    $('telaCapa').style.display = qual === 'capa' ? 'block' : 'none';
+    $('secaoCampo').style.display = qual === 'campo' ? 'block' : 'none';
+    $('secaoLogin').style.display = qual === 'login' ? 'block' : 'none';
+    $('secaoEscritorio').style.display = qual === 'escritorio' ? 'block' : 'none';
   }
-
-  function irParaCampo() {
-    alternarTela('secaoCampo', false);
-    sincronizarSistema();
-  }
-
-  function irParaLogin() {
-    alternarTela('secaoLogin', false);
-  }
-
+  function irParaCampo() { mostrarSecao('campo'); sincronizarSistema(); }
+  function irParaLogin() { mostrarSecao('login'); }
   function voltarCapa() {
-    alternarTela('telaCapa', false);
-    document.getElementById('senhaInput').value = "";
-    document.getElementById('erroLogin').textContent = "";
+    mostrarSecao('capa');
+    senhaAdmin = ""; sessionStorage.removeItem(SS_SENHA);
+    registrosAdmin = []; registrosFiltradosAtuais = [];
+    $('corpoTabela').innerHTML = "";
+    $('senhaInput').value = "";
+    $('erroLogin').textContent = "";
   }
-
   function alternarAbaVaqueiro(aba) {
-    const btnNovo = document.getElementById('btnTabNovo');
-    const btnConsulta = document.getElementById('btnTabConsulta');
-    const subNovo = document.getElementById('subAbaNovo');
-    const subConsulta = document.getElementById('subAbaConsulta');
-
-    if (aba === 'novo') {
-      btnNovo.className = "active";
-      btnConsulta.className = "";
-      subNovo.style.display = "block";
-      subConsulta.style.display = "none";
-    } else {
-      btnConsulta.className = "active";
-      btnNovo.className = "";
-      subConsulta.style.display = "block";
-      subNovo.style.display = "none";
-      sincronizarSistema();
-    }
+    const novo = aba === 'novo';
+    $('btnTabNovo').className = novo ? "active" : "";
+    $('btnTabConsulta').className = novo ? "" : "active";
+    $('subAbaNovo').style.display = novo ? "block" : "none";
+    $('subAbaConsulta').style.display = novo ? "none" : "block";
+    if (!novo) sincronizarSistema();
   }
 
-  function formatarDataBR(dataIso) {
-    if (!dataIso) return "";
-    const partes = dataIso.split("-");
-    if (partes.length === 3) {
-      return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  // =========================================================================
+  // OFFLINE: fila de envio + cache local
+  // =========================================================================
+  function lerFila() { return lerLS(LS_FILA, []); }
+
+  function atualizarStatus() {
+    const fila = lerFila();
+    const el = $('syncStatus');
+    let txt;
+    if (online) {
+      txt = `Sistema Online (${brincosEmUso.size} na base)`;
+    } else {
+      const c = lerLS(LS_CACHE, null);
+      txt = "Sem conexão";
+      if (c && c.quando) {
+        txt += " - dados de " + new Date(c.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      }
     }
-    return dataIso;
+    if (fila.length) txt += ` - ⏳ ${fila.length} aguardando envio (toque para tentar)`;
+    el.textContent = txt;
+    el.classList.toggle('offline', !online || fila.length > 0);
+  }
+
+  function renderErros() {
+    const erros = lerLS(LS_ERROS, []);
+    const box = $('boxErros');
+    if (!erros.length) { box.innerHTML = ""; return; }
+    box.innerHTML = `<div class="erro-lista"><b>⚠️ ${erros.length} registro(s) não foram aceitos pelo sistema:</b>` +
+      erros.map((e, i) => `
+        <div class="erro-item">
+          <span>Bezerro <b>${esc(e.dados.brincoBezerro)}</b> (vaca ${esc(e.dados.brincoVaca)}): ${esc(e.mensagem)}</span>
+          <button type="button" class="btn-icone" onclick="descartarErro(${i})">Descartar</button>
+        </div>`).join('') + `</div>`;
+  }
+  function descartarErro(i) {
+    const erros = lerLS(LS_ERROS, []);
+    erros.splice(i, 1);
+    gravarLS(LS_ERROS, erros);
+    renderErros();
+  }
+
+  function carregarCache() {
+    const c = lerLS(LS_CACHE, null);
+    if (!c) return;
+    todosRegistros = c.registros || [];
+    brincosEmUso = new Set(c.brincos || []);
+  }
+
+  // Envia, um por um, os lançamentos guardados no aparelho
+  async function enviarFila() {
+    if (enviando) return;
+    enviando = true;
+    try {
+      let fila = lerFila();
+      while (fila.length) {
+        const item = fila[0];
+        let res;
+        try { res = await api({ acao: 'criar', ...item.dados }); }
+        catch (e) { online = false; break; }   // sem internet: tenta de novo depois
+        online = true;
+        if (res.status === 'sucesso') {
+          brincosEmUso.add(item.dados.brincoBezerro);
+        } else {
+          const erros = lerLS(LS_ERROS, []);
+          erros.push({ dados: item.dados, mensagem: res.mensagem || 'Erro desconhecido' });
+          gravarLS(LS_ERROS, erros);
+        }
+        fila = lerFila().filter(p => p.dados.id !== item.dados.id);
+        gravarLS(LS_FILA, fila);
+      }
+    } finally {
+      enviando = false;
+      atualizarStatus();
+      renderErros();
+    }
   }
 
   async function sincronizarSistema() {
+    await enviarFila();
     try {
-      const resp = await fetch(SCRIPT_URL + "?t=" + new Date().getTime());
+      const resp = await fetch(SCRIPT_URL + "?t=" + Date.now());
       const json = await resp.json();
-      if (json.status === "sucesso") {
-        brincosEmUso = new Set(json.brincos);
-        todosRegistros = json.registros || [];
-        document.getElementById('syncStatus').textContent = `Sistema Online (${brincosEmUso.size} na base)`;
-        
-        renderizarTabelaVaqueiro(todosRegistros);
-        aplicarFiltrosEOrdenacao();
+      if (json.status !== "sucesso") throw new Error("resposta inválida");
+      todosRegistros = json.registros || [];
+      brincosEmUso = new Set((json.brincos || []).map(b => String(b).toUpperCase()));
+      gravarLS(LS_CACHE, { brincos: [...brincosEmUso], registros: todosRegistros, quando: Date.now() });
+      online = true;
+    } catch (e) {
+      online = false;
+      carregarCache();
+    }
+    atualizarStatus();
+    renderErros();
+    filtrarTabelaVaqueiro();
+  }
+
+  window.addEventListener('online', sincronizarSistema);
+  window.addEventListener('offline', () => { online = false; atualizarStatus(); });
+  setInterval(() => { if (lerFila().length) enviarFila(); }, 60000);
+
+  // Mostra o que já está salvo no aparelho antes mesmo de a rede responder
+  carregarCache();
+  atualizarStatus();
+  renderErros();
+  filtrarTabelaVaqueiro();
+  sincronizarSistema();
+
+  // =========================================================================
+  // MODO VAQUEIRO
+  // =========================================================================
+  function selecionarSexo(elemento) {
+    document.querySelectorAll('#nascimentoForm .radio-btn').forEach(btn => btn.classList.remove('active'));
+    elemento.classList.add('active');
+    $('sexo').value = elemento.getAttribute('data-value');
+  }
+
+  function mostrarAlertaCampo(msg, tipo) {
+    const box = $('alertBoxCampo');
+    box.textContent = msg;
+    box.className = 'alert ' + (tipo === 'erro' ? 'alert-error' : tipo === 'aviso' ? 'alert-warn' : 'alert-success');
+    box.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  $('nascimentoForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const sexo = $('sexo').value;
+    if (!sexo) { mostrarAlertaCampo("Selecione o sexo do bezerro.", "erro"); return; }
+
+    const brincoBezerro = $('brincoBezerro').value.trim().toUpperCase();
+    const brincoVaca = $('brincoVaca').value.trim().toUpperCase();
+    const fila = lerFila();
+    if (brincosEmUso.has(brincoBezerro) || fila.some(p => p.dados.brincoBezerro === brincoBezerro)) {
+      mostrarAlertaCampo(`BLOQUEADO: O brinco ${brincoBezerro} já foi cadastrado!`, "erro");
+      return;
+    }
+
+    const dados = {
+      id: novoId(),
+      brincoVaca, brincoBezerro, sexo,
+      raca: $('raca').value,
+      dataNascimento: $('dataNascimento').value,
+      situacao: $('situacao').value,
+      observacoes: $('observacoes').value.trim()
+    };
+
+    // 1) guarda no aparelho (nunca perde o lançamento)
+    fila.push({ dados, criadoEm: Date.now() });
+    if (!gravarLS(LS_FILA, fila)) {
+      mostrarAlertaCampo("Não foi possível salvar no aparelho (memória cheia ou navegação privada).", "erro");
+      return;
+    }
+
+    $('nascimentoForm').reset();
+    document.querySelectorAll('#nascimentoForm .radio-btn').forEach(b => b.classList.remove('active'));
+    $('sexo').value = "";
+    $('dataNascimento').value = hojeISO();
+    atualizarStatus();
+    filtrarTabelaVaqueiro();
+    mostrarAlertaCampo(`Bezerro ${brincoBezerro} salvo no aparelho. Enviando...`, "aviso");
+
+    // 2) tenta enviar agora; se estiver sem sinal, vai depois sozinho
+    await enviarFila();
+    const aindaNaFila = lerFila().some(p => p.dados.id === dados.id);
+    const comErro = lerLS(LS_ERROS, []).find(x => x.dados.id === dados.id);
+    if (comErro) mostrarAlertaCampo(`Bezerro ${brincoBezerro} NÃO foi aceito: ${comErro.mensagem}`, "erro");
+    else if (aindaNaFila) mostrarAlertaCampo(`Sem conexão. Bezerro ${brincoBezerro} está salvo no aparelho e será enviado quando houver internet.`, "aviso");
+    else mostrarAlertaCampo(`Bezerro ${brincoBezerro} registrado com sucesso!`, "sucesso");
+    sincronizarSistema();
+  });
+
+  function renderizarTabelaVaqueiro(registros) {
+    const tbody = $('corpoTabelaVaqueiro');
+    if (registros.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Nenhum registro.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = registros.map(r => `
+      <tr class="${r.pendente ? 'pendente' : ''}">
+        <td>${r.pendente ? '⏳ ' : ''}${esc(formatarDataBR(r.dataNascimento))}</td>
+        <td>${esc(r.brincoVaca)}</td>
+        <td><b>${esc(r.brincoBezerro)}</b></td>
+        <td>${esc(r.sexo)}</td>
+      </tr>`).join('');
+  }
+
+  function filtrarTabelaVaqueiro() {
+    const termo = $('filtroVaqueiro').value.trim().toUpperCase();
+    const pendentes = lerFila().map(p => ({ ...p.dados, pendente: true }));
+    const lista = pendentes.concat(todosRegistros);
+    const filtrados = lista.filter(r => termo === "" ||
+      String(r.brincoBezerro).toUpperCase().includes(termo) || String(r.brincoVaca).toUpperCase().includes(termo));
+    renderizarTabelaVaqueiro(filtrados);
+  }
+
+  // =========================================================================
+  // PAINEL DO ESCRITÓRIO (senha conferida no servidor)
+  // =========================================================================
+  async function fazerLogin() {
+    const senha = $('senhaInput').value;
+    if (!senha) { $('erroLogin').textContent = "Digite a senha."; return; }
+    const btn = $('btnLogin');
+    btn.disabled = true; btn.textContent = "Entrando...";
+    $('erroLogin').textContent = "";
+    try {
+      const r = await api({ acao: 'login', senha });
+      if (r.status === 'sucesso') {
+        senhaAdmin = senha;
+        sessionStorage.setItem(SS_SENHA, senha);
+        $('senhaInput').value = "";
+        mostrarSecao('escritorio');
+        carregarDadosEscritorio();
+      } else {
+        $('erroLogin').textContent = r.mensagem || "Senha incorreta!";
       }
     } catch (e) {
-      document.getElementById('syncStatus').textContent = "Modo Offline / Sem conexão";
+      $('erroLogin').textContent = "Sem conexão. O login precisa de internet.";
+    } finally {
+      btn.disabled = false; btn.textContent = "Entrar no Painel";
+    }
+  }
+  $('senhaInput').addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+
+  function sessaoExpirada() {
+    voltarCapa(); irParaLogin();
+    $('erroLogin').textContent = "Senha inválida ou sessão expirada. Entre novamente.";
+  }
+
+  async function carregarDadosEscritorio() {
+    const btn = $('btnAtualizar');
+    btn.textContent = "🔄 Atualizando..."; btn.disabled = true;
+    try {
+      const r = await api({ acao: 'listar', senha: senhaAdmin });
+      if (r.status === 'sucesso') {
+        registrosAdmin = r.registros || [];
+        aplicarFiltrosEOrdenacao();
+      } else if (r.codigo === 'senha') {
+        sessaoExpirada();
+      } else {
+        alert(r.mensagem || "Erro ao carregar os dados.");
+      }
+    } catch (e) {
+      alert("Sem conexão. O painel do escritório precisa de internet.");
+    } finally {
+      btn.textContent = "🔄 Atualizar"; btn.disabled = false;
     }
   }
 
-  sincronizarSistema();
+  function limparFiltrosEscritorio() {
+    $('filtroDataInicio').value = "";
+    $('filtroDataFim').value = "";
+    $('filtroBrinco').value = "";
+    $('filtroSexo').value = "";
+    $('ordenacaoSelect').value = "data_desc";
+    aplicarFiltrosEOrdenacao();
+  }
 
-  function selecionarSexo(elemento)
+  function aplicarFiltrosEOrdenacao() {
+    const dataInicio = $('filtroDataInicio').value;
+    const dataFim = $('filtroDataFim').value;
+    const termo = $('filtroBrinco').value.trim().toUpperCase();
+    const filtroSexo = $('filtroSexo').value;
+    const ordem = $('ordenacaoSelect').value;
+
+    const resultado = registrosAdmin.filter(r => {
+      const okIni = !dataInicio || (r.dataNascimento && r.dataNascimento >= dataInicio);
+      const okFim = !dataFim || (r.dataNascimento && r.dataNascimento <= dataFim);
+      const okBrinco = termo === "" || String(r.brincoBezerro).toUpperCase().includes(termo) || String(r.brincoVaca).toUpperCase().includes(termo);
+      const okSexo = filtroSexo === "" || r.sexo === filtroSexo;
+      return okIni && okFim && okBrinco && okSexo;
+    });
+
+    const num = { numeric: true };
+    resultado.sort((a, b) => {
+      if (ordem === "data_desc") return (b.dataNascimento || "").localeCompare(a.dataNascimento || "");
+      if (ordem === "data_asc") return (a.dataNascimento || "").localeCompare(b.dataNascimento || "");
+      if (ordem === "bezerro_asc") return String(a.brincoBezerro).localeCompare(String(b.brincoBezerro), undefined, num);
+      if (ordem === "vaca_asc") return String(a.brincoVaca).localeCompare(String(b.brincoVaca), undefined, num);
+      return 0;
+    });
+
+    registrosFiltradosAtuais = resultado;
+    $('totalNascimentos').textContent = resultado.length;
+    $('totalMachos').textContent = resultado.filter(r => r.sexo === 'Macho').length;
+    $('totalFemeas').textContent = resultado.filter(r => r.sexo === 'Fêmea').length;
+
+    renderizarTabelaEscritorio(resultado);
+    renderizarGrafico(resultado);   // agora o gráfico acompanha os filtros
+  }
+
+  function renderizarTabelaEscritorio(registros) {
+    const tbody = $('corpoTabela');
+    if (registros.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum registro encontrado.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = registros.map(r => `
+      <tr>
+        <td>${esc(formatarDataBR(r.dataNascimento))}</td>
+        <td>${esc(r.brincoVaca)}</td>
+        <td><b>${esc(r.brincoBezerro)}</b></td>
+        <td>${esc(r.sexo)}</td>
+        <td>${esc(r.raca)}</td>
+        <td>${esc(r.situacao)}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn-icone" data-acao="editar" data-id="${esc(r.id)}" title="Editar">✏️</button>
+          <button class="btn-icone" data-acao="excluir" data-id="${esc(r.id)}" title="Excluir">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  $('corpoTabela').addEventListener('click', e => {
+    const b = e.target.closest('button[data-acao]');
+    if (!b) return;
+    if (b.dataset.acao === 'editar') abrirEdicao(b.dataset.id);
+    else excluirRegistro(b.dataset.id);
+  });
+
+  // ---------- editar / excluir ----------
+  function abrirEdicao(id) {
+    const r = registrosAdmin.find(x => x.id === id);
+    if (!r) return;
+    $('mRaca').innerHTML = $('raca').innerHTML;
+    $('mSituacao').innerHTML = $('situacao').innerHTML;
+    $('mId').value = r.id;
+    $('mVaca').value = r.brincoVaca;
+    $('mBezerro').value = r.brincoBezerro;
+    $('mSexo').value = r.sexo;
+    $('mRaca').value = r.raca;
+    $('mData').value = r.dataNascimento;
+    $('mSituacao').value = r.situacao;
+    $('mObs').value = r.observacoes || "";
+    $('erroModal').textContent = "";
+    $('modalEditar').classList.add('aberto');
+  }
+  function fecharEdicao() { $('modalEditar').classList.remove('aberto'); }
+
+  async function salvarEdicao() {
+    const dados = {
+      brincoVaca: $('mVaca').value.trim().toUpperCase(),
+      brincoBezerro: $('mBezerro').value.trim().toUpperCase(),
+      sexo: $('mSexo').value,
+      raca: $('mRaca').value,
+      dataNascimento: $('mData').value,
+      situacao: $('mSituacao').value,
+      observacoes: $('mObs').value.trim()
+    };
+    if (!dados.brincoVaca || !dados.brincoBezerro || !dados.dataNascimento) {
+      $('erroModal').textContent = "Preencha os brincos e a data.";
+      return;
+    }
+    const btn = $('btnSalvarEdicao');
+    btn.disabled = true; btn.textContent = "Salvando...";
+    try {
+      const r = await api({ acao: 'editar', senha: senhaAdmin, id: $('mId').value, ...dados });
+      if (r.status === 'sucesso') { fecharEdicao(); carregarDadosEscritorio(); }
+      else if (r.codigo === 'senha') { fecharEdicao(); sessaoExpirada(); }
+      else $('erroModal').textContent = r.mensagem || "Erro ao salvar.";
+    } catch (e) {
+      $('erroModal').textContent = "Sem conexão. Tente novamente.";
+    } finally {
+      btn.disabled = false; btn.textContent = "Salvar alterações";
+    }
+  }
+
+  async function excluirRegistro(id) {
+    const r = registrosAdmin.find(x => x.id === id);
+    if (!r) return;
+    if (!confirm(`Excluir o registro do bezerro ${r.brincoBezerro} (vaca ${r.brincoVaca})?\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      const res = await api({ acao: 'excluir', senha: senhaAdmin, id });
+      if (res.status === 'sucesso') carregarDadosEscritorio();
+      else if (res.codigo === 'senha') sessaoExpirada();
+      else alert(res.mensagem || "Erro ao excluir.");
+    } catch (e) {
+      alert("Sem conexão. Não foi possível excluir.");
+    }
+  }
+
+  // ---------- PDF ----------
+  function exportarRelatorioPDF() {
+    if (registrosFiltradosAtuais.length === 0) { alert("Não há dados para exportar no relatório."); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(27, 94, 32);
+    doc.text("Fazenda Volta Grande", 14, 20);
+
+    doc.setFontSize(11);
+    doc.setTextColor(80, 80, 80);
+    doc.text("Relatório de Controle de Nascimentos", 14, 27);
+
+    const dtIni = $('filtroDataInicio').value;
+    const dtFim = $('filtroDataFim').value;
+    let textoPeriodo = "Período: Todo o histórico";
+    if (dtIni && dtFim) textoPeriodo = `Período: ${formatarDataBR(dtIni)} até ${formatarDataBR(dtFim)}`;
+    else if (dtIni) textoPeriodo = `Período: A partir de ${formatarDataBR(dtIni)}`;
+    else if (dtFim) textoPeriodo = `Período: Até ${formatarDataBR(dtFim)}`;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`${textoPeriodo}   |   Total: ${registrosFiltradosAtuais.length} animais`, 14, 33);
+    doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 38);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 42, 196, 42);
+
+    doc.autoTable({
+      head: [["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação"]],
+      body: registrosFiltradosAtuais.map(r => [formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao]),
+      startY: 47,
+      theme: 'grid',
+      headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 4 }
+    });
+
+    doc.save("relatorio_nascimentos_volta_grande.pdf");
+  }
+
+  // ---------- gráfico ----------
+  function renderizarGrafico(registros) {
+    if (typeof Chart === 'undefined') return;
+    const contagem = {};
+    registros.forEach(r => {
+      if (r.dataNascimento) {
+        const k = r.dataNascimento.substring(0, 7);
+        contagem[k] = (contagem[k] || 0) + 1;
+      }
+    });
+    const meses = Object.keys(contagem).sort();
+    const labels = meses.map(m => { const [a, mm] = m.split("-"); return `${mm}/${a}`; });
+
+    if (meuGrafico) meuGrafico.destroy();
+    meuGrafico = new Chart($('graficoMes').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Nascimentos', data: meses.map(m => contagem[m]), backgroundColor: '#22c55e', borderRadius: 4 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, title: { display: true, text: 'Nascimentos por Mês', color: '#fff' } },
+        scales: {
+          x: { ticks: { color: '#a1a1aa' }, grid: { color: '#3f3f46' } },
+          y: { ticks: { color: '#a1a1aa', precision: 0 }, grid: { color: '#3f3f46' } }
+        }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
