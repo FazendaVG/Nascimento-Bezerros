@@ -880,7 +880,7 @@
         <td><button class="btn-icone btn-conf" data-acao="conferir" data-id="${esc(r.id)}" title="${r.conferido === 'Sim' ? 'Conferido em ' + esc(r.conferidoEm) + ' (toque para desfazer)' : 'Não conferido (toque para conferir)'}">${r.conferido === 'Sim' ? '✅' : '⬜'}</button></td>
         <td>${esc(formatarDataBR(r.dataNascimento))}</td>
         <td>${esc(r.brincoVaca)}</td>
-        <td><b>${esc(r.brincoBezerro)}</b>${r.gemeos === 'Sim' ? ' 👯' : ''}</td>
+        <td><b>${esc(r.brincoBezerro)}</b>${r.gemeos === 'Sim' ? ' 👯' + (irmaosGemeos(r).length ? ' c/ ' + esc(irmaosGemeos(r).join(', ')) : '') : ''}</td>
         <td>${esc(r.sexo)}</td>
         <td>${esc(r.raca)}</td>
         <td>${esc(r.situacao)}</td>
@@ -962,6 +962,20 @@
     }
   }
 
+  // ---------- gêmeos: quem é o irmão ----------
+  function irmaosGemeos(r) {
+    if (r.gemeos !== 'Sim') return [];
+    return registrosAdmin.filter(x => x.id !== r.id && x.gemeos === 'Sim' &&
+      String(x.brincoVaca).toUpperCase() === String(r.brincoVaca).toUpperCase() &&
+      x.dataNascimento && r.dataNascimento && diasEntre(x.dataNascimento, r.dataNascimento) <= TOLERANCIA_GEMEOS
+    ).map(x => x.brincoBezerro);
+  }
+  function gemeoCom(r) {
+    if (r.gemeos !== 'Sim') return "";
+    const ir = irmaosGemeos(r);
+    return ir.length ? "Gêmeo com o " + ir.join(" e o ") : "Gêmeo";
+  }
+
   // ---------- conferência ----------
   async function aplicarConferencia(ids, marcar) {
     const agora = marcar ? new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '';
@@ -996,7 +1010,7 @@
     const linhas = [["Data Nascimento", "Brinco Vaca", "Brinco Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Observações", "Conferido"]];
     registrosFiltradosAtuais.forEach(r => linhas.push([
       formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao,
-      r.gemeos === 'Sim' ? 'Sim' : 'Não', r.observacoes, r.conferido === 'Sim' ? 'Sim' : 'Não'
+      r.gemeos === 'Sim' ? gemeoCom(r) : 'Não', r.observacoes, r.conferido === 'Sim' ? 'Sim' : 'Não'
     ]));
     const csv = '\ufeff' + linhas.map(l => l.map(cel).join(';')).join('\r\n');
     const a = document.createElement('a');
@@ -1037,8 +1051,8 @@
     doc.line(14, 42, 196, 42);
 
     doc.autoTable({
-      head: [["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação"]],
-      body: registrosFiltradosAtuais.map(r => [formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao]),
+      head: [["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação", "Gêmeos"]],
+      body: registrosFiltradosAtuais.map(r => [formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao, gemeoCom(r)]),
       startY: 47,
       theme: 'grid',
       headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], fontStyle: 'bold' },
