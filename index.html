@@ -169,12 +169,12 @@
         </div>
 
         <div class="form-group">
-          <label for="brincoBezerro">Brinco do Bezerro *</label>
+          <label for="brincoBezerro" id="lblBrinco1">Brinco do Bezerro *</label>
           <input type="text" id="brincoBezerro" required placeholder="Ex: 502" autocomplete="off">
         </div>
 
         <div class="form-group">
-          <label>Sexo do Bezerro *</label>
+          <label id="lblSexo1">Sexo do Bezerro *</label>
           <div class="radio-group">
             <div class="radio-btn" data-value="Macho" onclick="selecionarSexo(this)">Macho</div>
             <div class="radio-btn" data-value="Fêmea" onclick="selecionarSexo(this)">Fêmea</div>
@@ -201,6 +201,16 @@
         </div>
 
         <div class="form-group">
+          <label for="situacao" id="lblSituacao1">Situação *</label>
+          <select id="situacao" required>
+            <option value="Vivo - Saudável" style="color:#000;">Vivo - Saudável</option>
+            <option value="Vivo - Requer Atenção" style="color:#000;">Vivo - Requer Atenção</option>
+            <option value="Natimorto" style="color:#000;">Natimorto (Nasceu Morto)</option>
+            <option value="Aborto" style="color:#000;">Aborto</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label class="check-gemeos"><input type="checkbox" id="gemeos"> 👯 Parto de gêmeos (a mesma vaca teve 2 bezerros)</label>
         </div>
 
@@ -222,16 +232,6 @@
             <select id="situacao2"></select>
           </div>
           <div class="subtitle" style="text-align:left; margin:0;">Raça, data e observações valem para os dois.</div>
-        </div>
-
-        <div class="form-group">
-          <label for="situacao">Situação *</label>
-          <select id="situacao" required>
-            <option value="Vivo - Saudável" style="color:#000;">Vivo - Saudável</option>
-            <option value="Vivo - Requer Atenção" style="color:#000;">Vivo - Requer Atenção</option>
-            <option value="Natimorto" style="color:#000;">Natimorto (Nasceu Morto)</option>
-            <option value="Aborto" style="color:#000;">Aborto</option>
-          </select>
         </div>
 
         <div class="form-group">
@@ -618,6 +618,10 @@
   function atualizarBlocoGemeo() {
     const ligado = $('gemeos').checked;
     $('blocoGemeo').style.display = ligado ? 'block' : 'none';
+    const pre = ligado ? '1º ' : '';
+    $('lblBrinco1').textContent = `Brinco do ${pre}Bezerro *`;
+    $('lblSexo1').textContent = `Sexo do ${pre}Bezerro *`;
+    $('lblSituacao1').textContent = ligado ? 'Situação do 1º Bezerro *' : 'Situação *';
     if (!ligado) {
       $('brincoBezerro2').value = "";
       $('sexo2').value = "";
