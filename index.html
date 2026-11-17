@@ -22,11 +22,12 @@
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; padding: 12px; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
     
-    /* Container padrão (para celular e login) */
+    /* Container dinâmico: compacto no celular/capa, expandido no painel de gestão */
     .container { width: 100%; max-width: 520px; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; transition: max-width 0.3s ease; }
-    
-    /* Classe para expandir o painel do escritório em tela cheia no computador */
     .container.full-width { max-width: 95vw; width: 95vw; padding: 24px; }
+
+    .view-section { display: none; width: 100%; }
+    .view-section.active { display: block; }
 
     #telaCapa { text-align: center; padding: 10px 0; }
     .logo-img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
@@ -76,7 +77,6 @@
     .metric-card h3 { margin: 0; font-size: 1.5rem; color: #22c55e; }
     .metric-card p { margin: 4px 0 0 0; font-size: 0.8rem; color: #a1a1aa; font-weight: 600; }
 
-    /* Caixa de Filtros Avançados */
     .filters-box { background: #262626; padding: 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #3f3f46; }
     .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px; }
     .filters-box label { font-size: 0.8rem; color: #a1a1aa; margin-bottom: 3px; }
@@ -103,7 +103,7 @@
 <div class="container" id="mainContainer">
 
   <!-- ================= TELA DE CAPA (INICIAL) ================= -->
-  <div id="telaCapa" class="view-section">
+  <div id="telaCapa" class="view-section active">
     <img src="logo.png" alt="Fazenda Volta Grande" class="logo-img">
     <h1>Fazenda Volta Grande</h1>
     <p>Controle de Nascimentos</p>
@@ -113,7 +113,7 @@
   </div>
 
   <!-- ================= ABA CAMPO (VAQUEIRO) ================= -->
-  <div id="secaoCampo" class="view-section" style="display: none;">
+  <div id="secaoCampo" class="view-section">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
       <span style="font-size: 0.85rem; font-weight: 700; color: #22c55e;">Modo Vaqueiro</span>
@@ -217,7 +217,7 @@
   </div>
 
   <!-- ================= TELA DE LOGIN ESCRITÓRIO ================= -->
-  <div id="secaoLogin" class="view-section" style="display: none; text-align: center;">
+  <div id="secaoLogin" class="view-section">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
       <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Área Restrita</span>
@@ -233,7 +233,7 @@
   </div>
 
   <!-- ================= PAINEL GERENCIAL DO ESCRITÓRIO ================= -->
-  <div id="secaoEscritorio" class="view-section" style="display: none;">
+  <div id="secaoEscritorio" class="view-section">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Sair do Painel</button>
       <span style="font-size: 1rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande</span>
@@ -347,12 +347,11 @@
       container.classList.remove('full-width');
     }
 
-    document.getElementById('telaCapa').style.display = 'none';
-    document.getElementById('secaoCampo').style.display = 'none';
-    document.getElementById('secaoLogin').style.display = 'none';
-    document.getElementById('secaoEscritorio').style.display = 'none';
+    document.querySelectorAll('.view-section').forEach(sec => {
+      sec.classList.remove('active');
+    });
 
-    document.getElementById(idAtivo).style.display = 'block';
+    document.getElementById(idAtivo).classList.add('active');
   }
 
   function irParaCampo() {
@@ -418,118 +417,4 @@
 
   sincronizarSistema();
 
-  function selecionarSexo(elemento) {
-    document.querySelectorAll('.radio-btn').forEach(btn => btn.classList.remove('active'));
-    elemento.classList.add('active');
-    document.getElementById('sexo').value = elemento.getAttribute('data-value');
-  }
-
-  function mostrarAlertaCampo(msg, tipo) {
-    const box = document.getElementById('alertBoxCampo');
-    box.textContent = msg;
-    box.className = 'alert ' + (tipo === 'erro' ? 'alert-error' : 'alert-success');
-    box.style.display = 'block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  document.getElementById('nascimentoForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const sexo = document.getElementById('sexo').value;
-    if (!sexo) {
-      mostrarAlertaCampo("Selecione o sexo do bezerro.", "erro");
-      return;
-    }
-
-    const brincoBezerro = document.getElementById('brincoBezerro').value.trim().toUpperCase();
-    if (brincosEmUso.has(brincoBezerro)) {
-      mostrarAlertaCampo(`BLOQUEADO: O brinco ${brincoBezerro} já foi cadastrado!`, "erro");
-      return;
-    }
-
-    const btn = document.getElementById('btnSalvar');
-    btn.disabled = true;
-    btn.textContent = "Salvando...";
-
-    const payload = {
-      brincoVaca: document.getElementById('brincoVaca').value,
-      brincoBezerro: brincoBezerro,
-      sexo: sexo,
-      raca: document.getElementById('raca').value,
-      dataNascimento: document.getElementById('dataNascimento').value,
-      situacao: document.getElementById('situacao').value,
-      observacoes: document.getElementById('observacoes').value
-    };
-
-    try {
-      const resp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-      const resJson = await resp.json();
-
-      if (resJson.status === "sucesso") {
-        mostrarAlertaCampo(resJson.mensagem, "sucesso");
-        brincosEmUso.add(brincoBezerro);
-        document.getElementById('nascimentoForm').reset();
-        document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('sexo').value = "";
-        document.getElementById('dataNascimento').valueAsDate = new Date();
-        sincronizarSistema();
-      } else {
-        mostrarAlertaCampo(resJson.mensagem, "erro");
-      }
-    } catch (err) {
-      mostrarAlertaCampo("Erro de conexão ao enviar dados.", "erro");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Salvar Nascimento";
-    }
-  });
-
-  function fazerLogin() {
-    const senha = document.getElementById('senhaInput').value;
-    if (senha === SENHA_ESCRITORIO) {
-      alternarTela('secaoEscritorio', true);
-      carregarDadosEscritorio();
-    } else {
-      document.getElementById('erroLogin').textContent = "Senha incorreta!";
-    }
-  }
-
-  async function carregarDadosEscritorio() {
-    const btnAtu = document.getElementById('btnAtualizar');
-    btnAtu.textContent = "🔄 Atualizando...";
-    btnAtu.disabled = true;
-
-    await sincronizarSistema();
-    renderizarGrafico(todosRegistros);
-
-    btnAtu.textContent = "🔄 Atualizar";
-    btnAtu.disabled = false;
-  }
-
-  function limparFiltrosEscritorio() {
-    document.getElementById('filtroDataInicio').value = "";
-    document.getElementById('filtroDataFim').value = "";
-    document.getElementById('filtroBrinco').value = "";
-    document.getElementById('filtroSexo').value = "";
-    document.getElementById('ordenacaoSelect').value = "data_desc";
-    aplicarFiltrosEOrdenacao();
-  }
-
-  function aplicarFiltrosEOrdenacao() {
-    const dataInicio = document.getElementById('filtroDataInicio').value;
-    const dataFim = document.getElementById('filtroDataFim').value;
-    const termoBrinco = document.getElementById('filtroBrinco').value.trim().toUpperCase();
-    const filtroSexo = document.getElementById('filtroSexo').value;
-    const ordem = document.getElementById('ordenacaoSelect').value;
-
-    let resultado = todosRegistros.filter(r => {
-      const matchDataInicio = !dataInicio || (r.dataNascimento && r.dataNascimento >= dataInicio);
-      const matchDataFim = !dataFim || (r.dataNascimento && r.dataNascimento <= dataFim);
-      const matchBrinco = termoBrinco === "" || r.brincoBezerro.includes(termoBrinco) || r.brincoVaca.includes(termoBrinco);
-      const matchSexo = filtroSexo === "" || r.sexo === filtroSexo;
-      return matchDataInicio && matchDataFim && matchBrinco && matchSexo;
-    });
-
-    resultado.sort((a, b) => {
-      if (ordem === "data_desc") {
-        return (b.dataNascimento || "").localeCompare(a.dataNascimento || "");
-      } else if
+  function selecionarSexo(elemento)
