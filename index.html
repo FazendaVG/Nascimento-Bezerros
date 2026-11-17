@@ -3,138 +3,284 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Nascimentos</title>
+  <title>Fazenda Volta Grande - Controle de Nascimentos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --primary: #1b5e20;
       --primary-light: #2e7d32;
-      --bg: #f4f6f4;
-      --card: #ffffff;
-      --text: #1f2937;
-      --danger: #c62828;
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #f3f4f6;
+      --danger: #ef4444;
     }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); }
-    .container { max-width: 480px; margin: 0 auto; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    h1 { margin: 0 0 6px 0; font-size: 1.4rem; color: var(--primary); text-align: center; }
-    .subtitle { text-align: center; font-size: 0.85rem; color: #6b7280; margin-bottom: 20px; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.95rem; }
+    body { margin: 0; padding: 12px; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 480px; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; }
+    
+    #telaCapa { text-align: center; padding: 10px 0; }
+    .logo-img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    #telaCapa h1 { font-size: 1.5rem; color: #fff; margin: 0 0 6px 0; }
+    #telaCapa p { color: #9ca3af; font-size: 0.9rem; margin-bottom: 24px; }
+    
+    .btn-capa {
+      width: 100%; padding: 16px; margin-bottom: 12px; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-vaqueiro { background: #22c55e; color: #000; }
+    .btn-escritorio { background: #374151; color: #fff; border: 1px solid #4b5563; }
+    .btn-capa:active { opacity: 0.85; }
+
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    .btn-voltar { background: none; border: none; color: #9ca3af; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+
+    h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #22c55e; text-align: center; }
+    .subtitle { text-align: center; font-size: 0.8rem; color: #9ca3af; margin-bottom: 16px; }
+    
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.85rem; color: #d1d5db; }
     input, select, textarea {
-      width: 100%; padding: 14px; border: 2px solid #d1d5db; border-radius: 8px;
-      font-size: 1.05rem; background: #fff; transition: border-color 0.2s;
+      width: 100%; padding: 12px; border: 1px solid #4b5563; border-radius: 8px;
+      font-size: 1rem; background: #2a2a2a; color: #fff;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; }
-    .radio-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    input:focus, select:focus { border-color: #22c55e; outline: none; }
+    .radio-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .radio-btn {
-      padding: 14px; border: 2px solid #d1d5db; border-radius: 8px; text-align: center;
-      font-weight: 700; cursor: pointer; background: #f9fafb; user-select: none;
+      padding: 12px; border: 1px solid #4b5563; border-radius: 8px; text-align: center;
+      font-weight: 600; cursor: pointer; background: #2a2a2a; color: #d1d5db;
     }
-    .radio-btn.active { border-color: var(--primary); background: #e8f5e9; color: var(--primary); }
-    button[type="submit"] {
-      width: 100%; padding: 16px; background: var(--primary); color: white; border: none;
-      border-radius: 8px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 8px;
+    .radio-btn.active { border-color: #22c55e; background: #064e3b; color: #22c55e; }
+    
+    button.main-btn {
+      width: 100%; padding: 14px; background: #22c55e; color: #000; border: none;
+      border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer;
     }
-    button[type="submit"]:disabled { background: #9ca3af; cursor: not-allowed; }
-    .alert { padding: 14px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; display: none; }
-    .alert-error { background: #ffebee; color: var(--danger); border: 1px solid #ef9a9a; }
-    .alert-success { background: #e8f5e9; color: var(--primary); border: 1px solid #a5d6a7; }
-    .status-sync { font-size: 0.8rem; text-align: center; color: #6b7280; margin-bottom: 12px; }
+    button.main-btn:disabled { background: #4b5563; color: #9ca3af; }
+    
+    .alert { padding: 12px; border-radius: 8px; margin-bottom: 14px; font-weight: 600; display: none; font-size: 0.85rem; }
+    .alert-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
+    .alert-success { background: #064e3b; color: #86efac; border: 1px solid #065f46; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .metric-card { background: #262626; border: 1px solid #3f3f46; padding: 10px; border-radius: 8px; text-align: center; }
+    .metric-card h3 { margin: 0; font-size: 1.2rem; color: #22c55e; }
+    .metric-card p { margin: 4px 0 0 0; font-size: 0.7rem; color: #a1a1aa; font-weight: 600; }
+
+    .filters-box { background: #262626; padding: 10px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    
+    .table-container { max-height: 280px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+    th, td { padding: 8px; border-bottom: 1px solid #3f3f46; color: #e4e4e7; }
+    th { background: #27272a; position: sticky; top: 0; }
+
+    .chart-container { position: relative; height: 220px; margin: 16px 0; background: #262626; padding: 10px; border-radius: 8px; border: 1px solid #3f3f46; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>Controle de Nascimentos</h1>
-  <div class="subtitle">Lançamento de Campo</div>
-  <div id="syncStatus" class="status-sync">Sincronizando brincos existentes...</div>
 
-  <div id="alertBox" class="alert"></div>
+  <!-- ================= TELA DE CAPA (INICIAL) ================= -->
+  <div id="telaCapa">
+    <img src="logo.png" alt="Fazenda Volta Grande" class="logo-img">
+    <h1>Fazenda Volta Grande</h1>
+    <p>Controle de Nascimentos</p>
 
-  <form id="nascimentoForm">
-    <div class="form-group">
-      <label for="brincoVaca">Brinco da Vaca (Mãe) *</label>
-      <input type="text" id="brincoVaca" required placeholder="Ex: 1045" autocomplete="off">
+    <button class="btn-capa btn-vaqueiro" onclick="abrirTela('secaoCampo')">📱 Acesso Vaqueiro (Campo)</button>
+    <button class="btn-capa btn-escritorio" onclick="abrirTela('secaoLogin')">💻 Acesso Escritório (Gestão)</button>
+  </div>
+
+  <!-- ================= ABA CAMPO (VAQUEIRO) ================= -->
+  <div id="secaoCampo" style="display: none;">
+    <div class="top-bar">
+      <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
+      <span style="font-size: 0.85rem; font-weight: 700; color: #22c55e;">Modo Vaqueiro</span>
     </div>
+    <h2>Registro de Nascimento</h2>
+    <div class="subtitle" id="syncStatus">Conectando...</div>
+    <div id="alertBoxCampo" class="alert"></div>
 
-    <div class="form-group">
-      <label for="brincoBezerro">Brinco do Bezerro *</label>
-      <input type="text" id="brincoBezerro" required placeholder="Ex: 502" autocomplete="off">
-    </div>
-
-    <div class="form-group">
-      <label>Sexo do Bezerro *</label>
-      <div class="radio-group">
-        <div class="radio-btn" data-value="Macho" onclick="selecionarSexo(this)">Macho</div>
-        <div class="radio-btn" data-value="Fêmea" onclick="selecionarSexo(this)">Fêmea</div>
+    <form id="nascimentoForm">
+      <div class="form-group">
+        <label for="brincoVaca">Brinco da Vaca (Mãe) *</label>
+        <input type="text" id="brincoVaca" required placeholder="Ex: 1045" autocomplete="off">
       </div>
-      <input type="hidden" id="sexo" required>
+
+      <div class="form-group">
+        <label for="brincoBezerro">Brinco do Bezerro *</label>
+        <input type="text" id="brincoBezerro" required placeholder="Ex: 502" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>Sexo do Bezerro *</label>
+        <div class="radio-group">
+          <div class="radio-btn" data-value="Macho" onclick="selecionarSexo(this)">Macho</div>
+          <div class="radio-btn" data-value="Fêmea" onclick="selecionarSexo(this)">Fêmea</div>
+        </div>
+        <input type="hidden" id="sexo" required>
+      </div>
+
+      <div class="form-group">
+        <label for="raca">Raça do Bezerro *</label>
+        <select id="raca" required>
+          <option value="" style="color:#000;">Selecione...</option>
+          <option value="Nelore" style="color:#000;">Nelore</option>
+          <option value="Angus" style="color:#000;">Angus</option>
+          <option value="Cruzamento Industrial" style="color:#000;">Cruzamento Industrial</option>
+          <option value="Brahman" style="color:#000;">Brahman</option>
+          <option value="Girolando" style="color:#000;">Girolando</option>
+          <option value="Outra" style="color:#000;">Outra</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="dataNascimento">Data de Nascimento *</label>
+        <input type="date" id="dataNascimento" required>
+      </div>
+
+      <div class="form-group">
+        <label for="situacao">Situação *</label>
+        <select id="situacao" required>
+          <option value="Vivo - Saudável" style="color:#000;">Vivo - Saudável</option>
+          <option value="Vivo - Requer Atenção" style="color:#000;">Vivo - Requer Atenção</option>
+          <option value="Natimorto" style="color:#000;">Natimorto (Nasceu Morto)</option>
+          <option value="Aborto" style="color:#000;">Aborto</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="observacoes">Observações</label>
+        <textarea id="observacoes" rows="2" placeholder="Opcional"></textarea>
+      </div>
+
+      <button type="submit" class="main-btn" id="btnSalvar">Salvar Nascimento</button>
+    </form>
+  </div>
+
+  <!-- ================= TELA DE LOGIN ESCRITÓRIO ================= -->
+  <div id="secaoLogin" style="display: none; text-align: center;">
+    <div class="top-bar">
+      <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
+      <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Área Restrita</span>
+    </div>
+    <h2 style="color: #38bdf8; margin-top: 20px;">Painel do Escritório</h2>
+    <p class="subtitle">Digite a senha para gerenciar</p>
+    
+    <div class="form-group" style="text-align: left; margin-top: 20px;">
+      <input type="password" id="senhaInput" placeholder="Senha de acesso">
+    </div>
+    <button class="main-btn" style="background: #38bdf8; color: #000;" onclick="fazerLogin()">Entrar no Painel</button>
+    <div id="erroLogin" style="color: var(--danger); font-size: 0.85rem; margin-top: 12px;"></div>
+  </div>
+
+  <!-- ================= PAINEL GERENCIAL DO ESCRITÓRIO ================= -->
+  <div id="secaoEscritorio" style="display: none;">
+    <div class="top-bar">
+      <button class="btn-voltar" onclick="voltarCapa()">← Sair do Painel</button>
+      <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande</span>
+    </div>
+    <h2>Relatórios e Gráficos</h2>
+    <button class="main-btn" style="background: #374151; color: #fff; font-size: 0.85rem; padding: 8px; margin-bottom: 12px;" onclick="carregarDadosEscritorio()">🔄 Atualizar Dados</button>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <h3 id="totalNascimentos">0</h3>
+        <p>Total</p>
+      </div>
+      <div class="metric-card">
+        <h3 id="totalMachos">0</h3>
+        <p>Machos</p>
+      </div>
+      <div class="metric-card">
+        <h3 id="totalFemeas">0</h3>
+        <p>Fêmeas</p>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="raca">Raça do Bezerro *</label>
-      <select id="raca" required>
-        <option value="">Selecione a raça...</option>
-        <option value="Nelore">Nelore</option>
-        <option value="Angus">Angus</option>
-        <option value="Cruzamento Industrial">Cruzamento Industrial</option>
-        <option value="Brahman">Brahman</option>
-        <option value="Girolando">Girolando</option>
-        <option value="Outra">Outra</option>
-      </select>
+    <div class="chart-container">
+      <canvas id="graficoMes"></canvas>
     </div>
 
-    <div class="form-group">
-      <label for="dataNascimento">Data de Nascimento *</label>
-      <input type="date" id="dataNascimento" required>
+    <div class="filters-box">
+      <div>
+        <label style="font-size: 0.75rem;">Brinco:</label>
+        <input type="text" id="filtroBrinco" placeholder="Filtrar..." oninput="filtrarTabela()" style="padding: 8px; font-size: 0.9rem;">
+      </div>
+      <div>
+        <label style="font-size: 0.75rem;">Sexo:</label>
+        <select id="filtroSexo" onchange="filtrarTabela()" style="padding: 8px; font-size: 0.9rem;">
+          <option value="" style="color:#000;">Todos</option>
+          <option value="Macho" style="color:#000;">Macho</option>
+          <option value="Fêmea" style="color:#000;">Fêmea</option>
+        </select>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="situacao">Situação *</label>
-      <select id="situacao" required>
-        <option value="Vivo - Saudável">Vivo - Saudável</option>
-        <option value="Vivo - Debilitado / Requer Atenção">Vivo - Debilitado / Requer Atenção</option>
-        <option value="Natimorto (Nasceu Morto)">Natimorto (Nasceu Morto)</option>
-        <option value="Aborto">Aborto</option>
-      </select>
+    <div class="table-container">
+      <table id="tabelaRelatorio">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Vaca</th>
+            <th>Bezerro</th>
+            <th>Sexo</th>
+            <th>Raça</th>
+            <th>Situação</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
     </div>
+  </div>
 
-    <div class="form-group">
-      <label for="observacoes">Observações (Opcional)</label>
-      <textarea id="observacoes" rows="2" placeholder="Ex: Parto auxiliado, mãe rejeitou, etc."></textarea>
-    </div>
-
-    <button type="submit" id="btnSalvar">Salvar Nascimento</button>
-  </form>
 </div>
 
 <script>
   // =========================================================================
-  // COLE ABAIXO A URL DO SEU GOOGLE APPS SCRIPT (GERADA NO PASSO 2)
+  // CONFIGURAÇÕES GERAIS
   // =========================================================================
-  const SCRIPT_URL = "COLE_SUA_URL_AQUI";
+  const SCRIPT_URL = "COLE_SUA_URL_AQUI"; // Substitua pela URL do Apps Script
+  const SENHA_ESCRITORIO = "bezerro123";  // Senha configurada
 
   let brincosEmUso = new Set();
+  let todosRegistros = [];
+  let meuGrafico = null;
 
-  // Define a data de hoje como padrão
   document.getElementById('dataNascimento').valueAsDate = new Date();
 
-  // Carrega brincos já cadastrados ao abrir a página
-  async function carregarBrincosExistentes() {
-    const statusEl = document.getElementById('syncStatus');
+  function abrirTela(idTela) {
+    document.getElementById('telaCapa').style.display = 'none';
+    document.getElementById('secaoCampo').style.display = 'none';
+    document.getElementById('secaoLogin').style.display = 'none';
+    document.getElementById('secaoEscritorio').style.display = 'none';
+    
+    document.getElementById(idTela).style.display = 'block';
+  }
+
+  function voltarCapa() {
+    document.getElementById('telaCapa').style.display = 'block';
+    document.getElementById('secaoCampo').style.display = 'none';
+    document.getElementById('secaoLogin').style.display = 'none';
+    document.getElementById('secaoEscritorio').style.display = 'none';
+    document.getElementById('senhaInput').value = "";
+    document.getElementById('erroLogin').textContent = "";
+  }
+
+  async function sincronizarSistema() {
     try {
       const resp = await fetch(SCRIPT_URL);
       const json = await resp.json();
       if (json.status === "sucesso") {
         brincosEmUso = new Set(json.brincos);
-        statusEl.textContent = `Conectado (${brincosEmUso.size} bezerros já registrados)`;
+        todosRegistros = json.registros;
+        document.getElementById('syncStatus').textContent = `Sistema Online (${brincosEmUso.size} na base)`;
       }
     } catch (e) {
-      statusEl.textContent = "Aviso: Validação local em modo offline (o servidor validará ao enviar).";
+      document.getElementById('syncStatus').textContent = "Modo Offline / Sem conexão";
     }
   }
 
-  carregarBrincosExistentes();
+  sincronizarSistema();
 
   function selecionarSexo(elemento) {
     document.querySelectorAll('.radio-btn').forEach(btn => btn.classList.remove('active'));
@@ -142,35 +288,31 @@
     document.getElementById('sexo').value = elemento.getAttribute('data-value');
   }
 
-  function mostrarAlerta(mensagem, tipo) {
-    const alertBox = document.getElementById('alertBox');
-    alertBox.textContent = mensagem;
-    alertBox.className = 'alert ' + (tipo === 'erro' ? 'alert-error' : 'alert-success');
-    alertBox.style.display = 'block';
+  function mostrarAlertaCampo(msg, tipo) {
+    const box = document.getElementById('alertBoxCampo');
+    box.textContent = msg;
+    box.className = 'alert ' + (tipo === 'erro' ? 'alert-error' : 'alert-success');
+    box.style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   document.getElementById('nascimentoForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     const sexo = document.getElementById('sexo').value;
     if (!sexo) {
-      mostrarAlerta("Por favor, selecione o Sexo do bezerro (Macho ou Fêmea).", "erro");
+      mostrarAlertaCampo("Selecione o sexo do bezerro.", "erro");
       return;
     }
 
     const brincoBezerro = document.getElementById('brincoBezerro').value.trim().toUpperCase();
-
-    // 1ª Barreira: Validação imediata na tela
     if (brincosEmUso.has(brincoBezerro)) {
-      mostrarAlerta(`BLOQUEADO: O brinco nº ${brincoBezerro} já foi usado em outro bezerro!`, "erro");
+      mostrarAlertaCampo(`BLOQUEADO: O brinco ${brincoBezerro} já foi cadastrado!`, "erro");
       return;
     }
 
     const btn = document.getElementById('btnSalvar');
     btn.disabled = true;
-    btn.textContent = "Verificando e Salvando...";
-    document.getElementById('alertBox').style.display = 'none';
+    btn.textContent = "Salvando...";
 
     const payload = {
       brincoVaca: document.getElementById('brincoVaca').value,
@@ -183,34 +325,132 @@
     };
 
     try {
-      // Envia para o Google Apps Script (2ª Barreira: Validação no servidor)
-      const response = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+      const resp = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const resJson = await resp.json();
 
-      const result = await response.json();
-
-      if (result.status === "sucesso") {
-        mostrarAlerta(result.mensagem, "sucesso");
+      if (resJson.status === "sucesso") {
+        mostrarAlertaCampo(resJson.mensagem, "sucesso");
         brincosEmUso.add(brincoBezerro);
-        document.getElementById('syncStatus').textContent = `Conectado (${brincosEmUso.size} bezerros já registrados)`;
-        
-        // Limpa os campos para o próximo lançamento
         document.getElementById('nascimentoForm').reset();
         document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('sexo').value = "";
         document.getElementById('dataNascimento').valueAsDate = new Date();
+        sincronizarSistema();
       } else {
-        mostrarAlerta(result.mensagem, "erro");
+        mostrarAlertaCampo(resJson.mensagem, "erro");
       }
-    } catch (error) {
-      mostrarAlerta("Erro de conexão com a internet. Verifique o sinal e tente novamente.", "erro");
+    } catch (err) {
+      mostrarAlertaCampo("Erro de conexão ao enviar dados.", "erro");
     } finally {
       btn.disabled = false;
       btn.textContent = "Salvar Nascimento";
     }
   });
+
+  function fazerLogin() {
+    const senha = document.getElementById('senhaInput').value;
+    if (senha === SENHA_ESCRITORIO) {
+      abrirTela('secaoEscritorio');
+      carregarDadosEscritorio();
+    } else {
+      document.getElementById('erroLogin').textContent = "Senha incorreta!";
+    }
+  }
+
+  async function carregarDadosEscritorio() {
+    await sincronizarSistema();
+    atualizarDashboard(todosRegistros);
+  }
+
+  function atualizarDashboard(registros) {
+    document.getElementById('totalNascimentos').textContent = registros.length;
+    
+    const machos = registros.filter(r => r.sexo === 'Macho').length;
+    const femeas = registros.filter(r => r.sexo === 'Fêmea').length;
+    
+    document.getElementById('totalMachos').textContent = machos;
+    document.getElementById('totalFemeas').textContent = femeas;
+
+    renderizarTabela(registros);
+    renderizarGrafico(registros);
+  }
+
+  function renderizarTabela(registros) {
+    const tbody = document.getElementById('corpoTabela');
+    tbody.innerHTML = "";
+    
+    if (registros.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum registro.</td></tr>`;
+      return;
+    }
+
+    registros.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.dataNascimento}</td>
+        <td>${r.brincoVaca}</td>
+        <td><b>${r.brincoBezerro}</b></td>
+        <td>${r.sexo}</td>
+        <td>${r.raca}</td>
+        <td>${r.situacao}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function filtrarTabela() {
+    const termoBrinco = document.getElementById('filtroBrinco').value.trim().toUpperCase();
+    const filtroSexo = document.getElementById('filtroSexo').value;
+
+    const filtrados = todosRegistros.filter(r => {
+      const matchBrinco = termoBrinco === "" || r.brincoBezerro.includes(termoBrinco) || r.brincoVaca.includes(termoBrinco);
+      const matchSexo = filtroSexo === "" || r.sexo === filtroSexo;
+      return matchBrinco && matchSexo;
+    });
+
+    renderizarTabela(filtrados);
+  }
+
+  function renderizarGrafico(registros) {
+    const mesesContagem = {};
+    registros.forEach(r => {
+      if (r.dataNascimento) {
+        const mesAno = r.dataNascimento.substring(0, 7);
+        mesesContagem[mesAno] = (mesesContagem[mesAno] || 0) + 1;
+      }
+    });
+
+    const mesesOrdenados = Object.keys(mesesContagem).sort();
+    const valores = mesesOrdenados.map(m => mesesContagem[m]);
+
+    const ctx = document.getElementById('graficoMes').getContext('2d');
+    if (meuGrafico) meuGrafico.destroy();
+
+    meuGrafico = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: mesesOrdenados,
+        datasets: [{
+          label: 'Nascimentos',
+          data: valores,
+          backgroundColor: '#22c55e',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Nascimentos por Mês', color: '#fff' }
+        },
+        scales: {
+          x: { ticks: { color: '#a1a1aa' }, grid: { color: '#3f3f46' } },
+          y: { ticks: { color: '#a1a1aa' }, grid: { color: '#3f3f46' } }
+        }
+      }
+    });
+  }
 </script>
 
 </body>
