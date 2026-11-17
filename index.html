@@ -125,6 +125,8 @@
       .container.larga .chart-container { height: 260px; }
     }
     @media (max-width: 899px) { #btnTelaCheia { display: none; } }
+    .check-gemeos { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; }
+    .check-gemeos input { width: 22px; height: 22px; padding: 0; flex: none; }
   </style>
 </head>
 <body>
@@ -196,6 +198,10 @@
         <div class="form-group">
           <label for="dataNascimento">Data de Nascimento *</label>
           <input type="date" id="dataNascimento" required>
+        </div>
+
+        <div class="form-group">
+          <label class="check-gemeos"><input type="checkbox" id="gemeos"> 👯 Parto de gêmeos (a mesma vaca teve 2 bezerros)</label>
         </div>
 
         <div class="form-group">
@@ -371,6 +377,7 @@
       <select id="mSexo"><option value="Macho" style="color:#000;">Macho</option><option value="Fêmea" style="color:#000;">Fêmea</option></select></div>
     <div class="form-group"><label for="mRaca">Raça</label><select id="mRaca"></select></div>
     <div class="form-group"><label for="mData">Data de Nascimento</label><input type="date" id="mData"></div>
+    <div class="form-group"><label class="check-gemeos"><input type="checkbox" id="mGemeos"> 👯 Parto de gêmeos</label></div>
     <div class="form-group"><label for="mSituacao">Situação</label><select id="mSituacao"></select></div>
     <div class="form-group"><label for="mObs">Observações</label><textarea id="mObs" rows="2"></textarea></div>
     <div id="erroModal" style="color: var(--danger); font-size: 0.85rem;"></div>
@@ -593,6 +600,30 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Regras: brinco de bezerro único; vaca só pare de novo depois de JANELA_DIAS,
+  // exceto gêmeos (mesma data, com a caixa marcada). O servidor confere de novo.
+  const JANELA_DIAS = 180, TOLERANCIA_GEMEOS = 2;
+  function diasEntre(a, b) {
+    return Math.abs(Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 86400000;
+  }
+  function verificarDuplicidade(d, fila) {
+    const pend = fila.map(p => p.dados);
+    if (brincosEmUso.has(d.brincoBezerro) || pend.some(p => p.brincoBezerro === d.brincoBezerro)) {
+      return `O brinco ${d.brincoBezerro} já foi cadastrado!`;
+    }
+    const mesmaVaca = todosRegistros.concat(pend).filter(r =>
+      String(r.brincoVaca).toUpperCase() === d.brincoVaca && r.dataNascimento);
+    for (const r of mesmaVaca) {
+      const dif = diasEntre(r.dataNascimento, d.dataNascimento);
+      if (dif >= JANELA_DIAS) continue;
+      const info = `A vaca ${d.brincoVaca} já tem o bezerro ${r.brincoBezerro} registrado em ${formatarDataBR(r.dataNascimento)}.`;
+      if (d.gemeos && dif <= TOLERANCIA_GEMEOS) continue;
+      if (d.gemeos) return info + " Gêmeos precisam ter a mesma data de nascimento.";
+      return info + ' Se foi parto de gêmeos, marque "Parto de gêmeos".';
+    }
+    return null;
+  }
+
   $('nascimentoForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const sexo = $('sexo').value;
@@ -601,19 +632,18 @@
     const brincoBezerro = $('brincoBezerro').value.trim().toUpperCase();
     const brincoVaca = $('brincoVaca').value.trim().toUpperCase();
     const fila = lerFila();
-    if (brincosEmUso.has(brincoBezerro) || fila.some(p => p.dados.brincoBezerro === brincoBezerro)) {
-      mostrarAlertaCampo(`BLOQUEADO: O brinco ${brincoBezerro} já foi cadastrado!`, "erro");
-      return;
-    }
-
     const dados = {
       id: novoId(),
       brincoVaca, brincoBezerro, sexo,
       raca: $('raca').value,
       dataNascimento: $('dataNascimento').value,
       situacao: $('situacao').value,
+      gemeos: $('gemeos').checked,
       observacoes: $('observacoes').value.trim()
     };
+
+    const bloqueio = verificarDuplicidade(dados, fila);
+    if (bloqueio) { mostrarAlertaCampo("BLOQUEADO: " + bloqueio, "erro"); return; }
 
     // 1) guarda no aparelho (nunca perde o lançamento)
     fila.push({ dados, criadoEm: Date.now() });
@@ -769,7 +799,7 @@
       <tr>
         <td>${esc(formatarDataBR(r.dataNascimento))}</td>
         <td>${esc(r.brincoVaca)}</td>
-        <td><b>${esc(r.brincoBezerro)}</b></td>
+        <td><b>${esc(r.brincoBezerro)}</b>${r.gemeos === 'Sim' ? ' 👯' : ''}</td>
         <td>${esc(r.sexo)}</td>
         <td>${esc(r.raca)}</td>
         <td>${esc(r.situacao)}</td>
@@ -799,6 +829,7 @@
     $('mSexo').value = r.sexo;
     $('mRaca').value = r.raca;
     $('mData').value = r.dataNascimento;
+    $('mGemeos').checked = r.gemeos === 'Sim';
     $('mSituacao').value = r.situacao;
     $('mObs').value = r.observacoes || "";
     $('erroModal').textContent = "";
@@ -814,6 +845,7 @@
       raca: $('mRaca').value,
       dataNascimento: $('mData').value,
       situacao: $('mSituacao').value,
+      gemeos: $('mGemeos').checked,
       observacoes: $('mObs').value.trim()
     };
     if (!dados.brincoVaca || !dados.brincoBezerro || !dados.dataNascimento) {
