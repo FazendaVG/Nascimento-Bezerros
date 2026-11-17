@@ -204,6 +204,26 @@
           <label class="check-gemeos"><input type="checkbox" id="gemeos"> 👯 Parto de gêmeos (a mesma vaca teve 2 bezerros)</label>
         </div>
 
+        <div id="blocoGemeo" style="display:none; border-left: 3px solid #22c55e; padding-left: 12px; margin-bottom: 14px;">
+          <div class="form-group">
+            <label for="brincoBezerro2">Brinco do 2º Bezerro (gêmeo) *</label>
+            <input type="text" id="brincoBezerro2" placeholder="Ex: 503" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label>Sexo do 2º Bezerro *</label>
+            <div class="radio-group">
+              <div class="radio-btn" data-value="Macho" onclick="selecionarSexo(this)">Macho</div>
+              <div class="radio-btn" data-value="Fêmea" onclick="selecionarSexo(this)">Fêmea</div>
+            </div>
+            <input type="hidden" id="sexo2">
+          </div>
+          <div class="form-group">
+            <label for="situacao2">Situação do 2º Bezerro *</label>
+            <select id="situacao2"></select>
+          </div>
+          <div class="subtitle" style="text-align:left; margin:0;">Raça, data e observações valem para os dois.</div>
+        </div>
+
         <div class="form-group">
           <label for="situacao">Situação *</label>
           <select id="situacao" required>
@@ -587,10 +607,25 @@
   // MODO VAQUEIRO
   // =========================================================================
   function selecionarSexo(elemento) {
-    document.querySelectorAll('#nascimentoForm .radio-btn').forEach(btn => btn.classList.remove('active'));
+    const grupo = elemento.parentElement;
+    grupo.querySelectorAll('.radio-btn').forEach(btn => btn.classList.remove('active'));
     elemento.classList.add('active');
-    $('sexo').value = elemento.getAttribute('data-value');
+    grupo.nextElementSibling.value = elemento.getAttribute('data-value');
   }
+
+  // Gêmeos: a caixa abre os campos do 2º bezerro
+  $('situacao2').innerHTML = $('situacao').innerHTML;
+  function atualizarBlocoGemeo() {
+    const ligado = $('gemeos').checked;
+    $('blocoGemeo').style.display = ligado ? 'block' : 'none';
+    if (!ligado) {
+      $('brincoBezerro2').value = "";
+      $('sexo2').value = "";
+      $('situacao2').selectedIndex = 0;
+      $('blocoGemeo').querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
+    }
+  }
+  $('gemeos').addEventListener('change', atualizarBlocoGemeo);
 
   function mostrarAlertaCampo(msg, tipo) {
     const box = $('alertBoxCampo');
@@ -632,21 +667,32 @@
     const brincoBezerro = $('brincoBezerro').value.trim().toUpperCase();
     const brincoVaca = $('brincoVaca').value.trim().toUpperCase();
     const fila = lerFila();
-    const dados = {
-      id: novoId(),
-      brincoVaca, brincoBezerro, sexo,
-      raca: $('raca').value,
-      dataNascimento: $('dataNascimento').value,
-      situacao: $('situacao').value,
-      gemeos: $('gemeos').checked,
-      observacoes: $('observacoes').value.trim()
+    const gemeos = $('gemeos').checked;
+    const base = {
+      brincoVaca, raca: $('raca').value, dataNascimento: $('dataNascimento').value,
+      gemeos, observacoes: $('observacoes').value.trim()
     };
+    const novos = [{ id: novoId(), ...base, brincoBezerro, sexo, situacao: $('situacao').value }];
 
-    const bloqueio = verificarDuplicidade(dados, fila);
-    if (bloqueio) { mostrarAlertaCampo("BLOQUEADO: " + bloqueio, "erro"); return; }
+    if (gemeos) {
+      const brinco2 = $('brincoBezerro2').value.trim().toUpperCase();
+      const sexo2 = $('sexo2').value;
+      if (!brinco2) { mostrarAlertaCampo("Informe o brinco do 2º bezerro (gêmeos).", "erro"); return; }
+      if (brinco2 === brincoBezerro) { mostrarAlertaCampo("Os dois bezerros não podem ter o mesmo brinco.", "erro"); return; }
+      if (!sexo2) { mostrarAlertaCampo("Selecione o sexo do 2º bezerro.", "erro"); return; }
+      novos.push({ id: novoId(), ...base, brincoBezerro: brinco2, sexo: sexo2, situacao: $('situacao2').value });
+    }
+
+    // confere cada bezerro (o 1º já conta como pendente na checagem do 2º)
+    const acumulado = fila.slice();
+    for (const n of novos) {
+      const bloqueio = verificarDuplicidade(n, acumulado);
+      if (bloqueio) { mostrarAlertaCampo("BLOQUEADO: " + bloqueio, "erro"); return; }
+      acumulado.push({ dados: n });
+    }
 
     // 1) guarda no aparelho (nunca perde o lançamento)
-    fila.push({ dados, criadoEm: Date.now() });
+    novos.forEach(n => fila.push({ dados: n, criadoEm: Date.now() }));
     if (!gravarLS(LS_FILA, fila)) {
       mostrarAlertaCampo("Não foi possível salvar no aparelho (memória cheia ou navegação privada).", "erro");
       return;
@@ -656,17 +702,21 @@
     document.querySelectorAll('#nascimentoForm .radio-btn').forEach(b => b.classList.remove('active'));
     $('sexo').value = "";
     $('dataNascimento').value = hojeISO();
+    atualizarBlocoGemeo();
     atualizarStatus();
     filtrarTabelaVaqueiro();
-    mostrarAlertaCampo(`Bezerro ${brincoBezerro} salvo no aparelho. Enviando...`, "aviso");
+
+    const rotulo = (novos.length > 1 ? "Bezerros " : "Bezerro ") + novos.map(n => n.brincoBezerro).join(" e ");
+    const ids = novos.map(n => n.id);
+    mostrarAlertaCampo(`${rotulo} salvo(s) no aparelho. Enviando...`, "aviso");
 
     // 2) tenta enviar agora; se estiver sem sinal, vai depois sozinho
     await enviarFila();
-    const aindaNaFila = lerFila().some(p => p.dados.id === dados.id);
-    const comErro = lerLS(LS_ERROS, []).find(x => x.dados.id === dados.id);
-    if (comErro) mostrarAlertaCampo(`Bezerro ${brincoBezerro} NÃO foi aceito: ${comErro.mensagem}`, "erro");
-    else if (aindaNaFila) mostrarAlertaCampo(`Sem conexão. Bezerro ${brincoBezerro} está salvo no aparelho e será enviado quando houver internet.`, "aviso");
-    else mostrarAlertaCampo(`Bezerro ${brincoBezerro} registrado com sucesso!`, "sucesso");
+    const aindaNaFila = lerFila().some(p => ids.includes(p.dados.id));
+    const comErro = lerLS(LS_ERROS, []).find(x => ids.includes(x.dados.id));
+    if (comErro) mostrarAlertaCampo(`Bezerro ${comErro.dados.brincoBezerro} NÃO foi aceito: ${comErro.mensagem}`, "erro");
+    else if (aindaNaFila) mostrarAlertaCampo(`Sem conexão. ${rotulo} salvo(s) no aparelho e será(ão) enviado(s) quando houver internet.`, "aviso");
+    else mostrarAlertaCampo(`${rotulo} registrado(s) com sucesso!`, "sucesso");
     sincronizarSistema();
   });
 
