@@ -189,7 +189,7 @@
     <h2>Relatórios e Gráficos</h2>
     
     <div class="action-buttons">
-      <button class="main-btn" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 8px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
+      <button class="main-btn" id="btnAtualizar" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 8px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
       <button class="main-btn" style="background: #dc2626; color: #fff; font-size: 0.8rem; padding: 8px;" onclick="exportarRelatorioPDF()">📄 Baixar PDF</button>
     </div>
 
@@ -285,11 +285,12 @@
 
   async function sincronizarSistema() {
     try {
-      const resp = await fetch(SCRIPT_URL);
+      // Adicionando parâmetro de tempo aleatório para evitar cache do navegador na busca
+      const resp = await fetch(SCRIPT_URL + "?t=" + new Date().getTime());
       const json = await resp.json();
       if (json.status === "sucesso") {
         brincosEmUso = new Set(json.brincos);
-        todosRegistros = json.registros;
+        todosRegistros = json.registros || [];
         registrosFiltradosAtuais = todosRegistros;
         document.getElementById('syncStatus').textContent = `Sistema Online (${brincosEmUso.size} na base)`;
       }
@@ -379,8 +380,15 @@
   }
 
   async function carregarDadosEscritorio() {
+    const btnAtu = document.getElementById('btnAtualizar');
+    btnAtu.textContent = "🔄 Atualizando...";
+    btnAtu.disabled = true;
+
     await sincronizarSistema();
     atualizarDashboard(todosRegistros);
+
+    btnAtu.textContent = "🔄 Atualizar";
+    btnAtu.disabled = false;
   }
 
   function atualizarDashboard(registros) {
@@ -401,7 +409,7 @@
     tbody.innerHTML = "";
     
     if (registros.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum registro.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum registro encontrado.</td></tr>`;
       return;
     }
 
