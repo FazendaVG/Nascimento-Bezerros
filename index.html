@@ -111,6 +111,20 @@
     .modal-overlay.aberto { display: flex; }
     .modal { width: 100%; max-width: 480px; background: var(--card); border: 1px solid #3f3f46; border-radius: 16px; padding: 20px; margin: auto; }
     .modal-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+
+    /* ===== Painel do escritório em tela larga (computador) ===== */
+    body.painel { align-items: flex-start; }
+    .container.larga { max-width: none; min-height: calc(100vh - 24px); }
+    #btnTelaCheia { margin-left: 12px; color: #38bdf8; }
+    @media (min-width: 900px) {
+      .container.larga { padding: 24px 32px; }
+      .painel-grid { display: grid; grid-template-columns: minmax(340px, 5fr) minmax(0, 7fr); gap: 24px; align-items: start; }
+      .painel-dir .table-container { max-height: calc(100vh - 150px); margin-top: 0; }
+      .painel-dir table { font-size: 0.9rem; }
+      .painel-dir th, .painel-dir td { padding: 10px; }
+      .container.larga .chart-container { height: 260px; }
+    }
+    @media (max-width: 899px) { #btnTelaCheia { display: none; } }
   </style>
 </head>
 <body>
@@ -252,9 +266,10 @@
   <div id="secaoEscritorio" style="display: none;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Sair do Painel</button>
-      <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande</span>
+      <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande<button class="btn-voltar" id="btnTelaCheia" onclick="alternarTelaCheia()">⛶ Tela cheia</button></span>
     </div>
     <h2>Relatórios e Gráficos</h2>
+    <div class="painel-grid"><div class="painel-esq">
     
     <div class="action-buttons">
       <button class="main-btn" id="btnAtualizar" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
@@ -323,7 +338,7 @@
       <button class="btn-limpar-filtros" onclick="limparFiltrosEscritorio()">Limpar Filtros</button>
     </div>
 
-    <div class="table-container">
+    </div><div class="painel-dir"><div class="table-container">
       <table id="tabelaRelatorio">
         <thead>
           <tr>
@@ -339,6 +354,7 @@
         <tbody id="corpoTabela"></tbody>
       </table>
     </div>
+    </div></div>
   </div>
 
 </div>
@@ -426,7 +442,14 @@
     $('secaoCampo').style.display = qual === 'campo' ? 'block' : 'none';
     $('secaoLogin').style.display = qual === 'login' ? 'block' : 'none';
     $('secaoEscritorio').style.display = qual === 'escritorio' ? 'block' : 'none';
+    document.querySelector('.container').classList.toggle('larga', qual === 'escritorio');
+    document.body.classList.toggle('painel', qual === 'escritorio');
   }
+  function alternarTelaCheia() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+  }
+  if (!document.documentElement.requestFullscreen) $('btnTelaCheia').style.display = 'none';
   function irParaCampo() { mostrarSecao('campo'); sincronizarSistema(); }
   function irParaLogin() { mostrarSecao('login'); }
   function voltarCapa() {
