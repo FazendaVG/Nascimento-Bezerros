@@ -22,7 +22,7 @@
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; padding: 12px; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
     
-    /* Container padrão (para o celular e login) */
+    /* Container padrão (para celular e login) */
     .container { width: 100%; max-width: 520px; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; transition: max-width 0.3s ease; }
     
     /* Classe para expandir o painel do escritório em tela cheia no computador */
@@ -103,7 +103,7 @@
 <div class="container" id="mainContainer">
 
   <!-- ================= TELA DE CAPA (INICIAL) ================= -->
-  <div id="telaCapa">
+  <div id="telaCapa" class="view-section">
     <img src="logo.png" alt="Fazenda Volta Grande" class="logo-img">
     <h1>Fazenda Volta Grande</h1>
     <p>Controle de Nascimentos</p>
@@ -113,7 +113,7 @@
   </div>
 
   <!-- ================= ABA CAMPO (VAQUEIRO) ================= -->
-  <div id="secaoCampo" style="display: none;">
+  <div id="secaoCampo" class="view-section" style="display: none;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
       <span style="font-size: 0.85rem; font-weight: 700; color: #22c55e;">Modo Vaqueiro</span>
@@ -217,7 +217,7 @@
   </div>
 
   <!-- ================= TELA DE LOGIN ESCRITÓRIO ================= -->
-  <div id="secaoLogin" style="display: none; text-align: center;">
+  <div id="secaoLogin" class="view-section" style="display: none; text-align: center;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Voltar</button>
       <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Área Restrita</span>
@@ -233,7 +233,7 @@
   </div>
 
   <!-- ================= PAINEL GERENCIAL DO ESCRITÓRIO ================= -->
-  <div id="secaoEscritorio" style="display: none;">
+  <div id="secaoEscritorio" class="view-section" style="display: none;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Sair do Painel</button>
       <span style="font-size: 1rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande</span>
@@ -339,29 +339,33 @@
     navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
   }
 
-  function irParaCampo() {
-    document.getElementById('mainContainer').classList.remove('full-width');
+  function alternarTela(idAtivo, expandir = false) {
+    const container = document.getElementById('mainContainer');
+    if (expandir) {
+      container.classList.add('full-width');
+    } else {
+      container.classList.remove('full-width');
+    }
+
     document.getElementById('telaCapa').style.display = 'none';
-    document.getElementById('secaoCampo').style.display = 'block';
+    document.getElementById('secaoCampo').style.display = 'none';
     document.getElementById('secaoLogin').style.display = 'none';
     document.getElementById('secaoEscritorio').style.display = 'none';
+
+    document.getElementById(idAtivo).style.display = 'block';
+  }
+
+  function irParaCampo() {
+    alternarTela('secaoCampo', false);
     sincronizarSistema();
   }
 
   function irParaLogin() {
-    document.getElementById('mainContainer').classList.remove('full-width');
-    document.getElementById('telaCapa').style.display = 'none';
-    document.getElementById('secaoCampo').style.display = 'none';
-    document.getElementById('secaoLogin').style.display = 'block';
-    document.getElementById('secaoEscritorio').style.display = 'none';
+    alternarTela('secaoLogin', false);
   }
 
   function voltarCapa() {
-    document.getElementById('mainContainer').classList.remove('full-width');
-    document.getElementById('telaCapa').style.display = 'block';
-    document.getElementById('secaoCampo').style.display = 'none';
-    document.getElementById('secaoLogin').style.display = 'none';
-    document.getElementById('secaoEscritorio').style.display = 'none';
+    alternarTela('telaCapa', false);
     document.getElementById('senhaInput').value = "";
     document.getElementById('erroLogin').textContent = "";
   }
@@ -482,12 +486,7 @@
   function fazerLogin() {
     const senha = document.getElementById('senhaInput').value;
     if (senha === SENHA_ESCRITORIO) {
-      // Expande a tela para modo desktop / tela cheia no escritório
-      document.getElementById('mainContainer').classList.add('full-width');
-      document.getElementById('telaCapa').style.display = 'none';
-      document.getElementById('secaoCampo').style.display = 'none';
-      document.getElementById('secaoLogin').style.display = 'none';
-      document.getElementById('secaoEscritorio').style.display = 'block';
+      alternarTela('secaoEscritorio', true);
       carregarDadosEscritorio();
     } else {
       document.getElementById('erroLogin').textContent = "Senha incorreta!";
@@ -533,87 +532,4 @@
     resultado.sort((a, b) => {
       if (ordem === "data_desc") {
         return (b.dataNascimento || "").localeCompare(a.dataNascimento || "");
-      } else if (ordem === "data_asc") {
-        return (a.dataNascimento || "").localeCompare(b.dataNascimento || "");
-      } else if (ordem === "bezerro_asc") {
-        return a.brincoBezerro.localeCompare(b.brincoBezerro, undefined, { numeric: true });
-      } else if (ordem === "vaca_asc") {
-        return a.brincoVaca.localeCompare(b.brincoVaca, undefined, { numeric: true });
-      }
-      return 0;
-    });
-
-    registrosFiltradosAtuais = resultado;
-
-    document.getElementById('totalNascimentos').textContent = registrosFiltradosAtuais.length;
-    document.getElementById('totalMachos').textContent = registrosFiltradosAtuais.filter(r => r.sexo === 'Macho').length;
-    document.getElementById('totalFemeas').textContent = registrosFiltradosAtuais.filter(r => r.sexo === 'Fêmea').length;
-
-    renderizarTabelaEscritorio(registrosFiltradosAtuais);
-  }
-
-  function renderizarTabelaEscritorio(registros) {
-    const tbody = document.getElementById('corpoTabela');
-    tbody.innerHTML = "";
-    
-    if (registros.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum registro encontrado.</td></tr>`;
-      return;
-    }
-
-    registros.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${formatarDataBR(r.dataNascimento)}</td>
-        <td>${r.brincoVaca}</td>
-        <td><b>${r.brincoBezerro}</b></td>
-        <td>${r.sexo}</td>
-        <td>${r.raca}</td>
-        <td>${r.situacao}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function renderizarTabelaVaqueiro(registros) {
-    const tbody = document.getElementById('corpoTabelaVaqueiro');
-    tbody.innerHTML = "";
-    
-    if (registros.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Nenhum registro.</td></tr>`;
-      return;
-    }
-
-    registros.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${formatarDataBR(r.dataNascimento)}</td>
-        <td>${r.brincoVaca}</td>
-        <td><b>${r.brincoBezerro}</b></td>
-        <td>${r.sexo}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function filtrarTabelaVaqueiro() {
-    const termo = document.getElementById('filtroVaqueiro').value.trim().toUpperCase();
-    const filtrados = todosRegistros.filter(r => {
-      return termo === "" || r.brincoBezerro.includes(termo) || r.brincoVaca.includes(termo);
-    });
-    renderizarTabelaVaqueiro(filtrados);
-  }
-
-  function exportarRelatorioPDF() {
-    if (registrosFiltradosAtuais.length === 0) {
-      alert("Não há dados para exportar no relatório.");
-      return;
-    }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(27, 94, 32);
-    doc.text("Fazenda
+      } else if
