@@ -21,7 +21,7 @@
     }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; padding: 12px; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .container { width: 100%; max-width: 480px; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; }
+    .container { width: 100%; max-width: 520px; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; }
     
     #telaCapa { text-align: center; padding: 10px 0; }
     .logo-img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
@@ -71,16 +71,22 @@
     .metric-card h3 { margin: 0; font-size: 1.2rem; color: #22c55e; }
     .metric-card p { margin: 4px 0 0 0; font-size: 0.7rem; color: #a1a1aa; font-weight: 600; }
 
-    .filters-box { background: #262626; padding: 10px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr; gap: 8px; }
+    /* Caixa de Filtros Avançados */
+    .filters-box { background: #262626; padding: 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #3f3f46; }
+    .filters-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .filters-row:last-child { margin-bottom: 0; }
+    .filters-box label { font-size: 0.75rem; color: #a1a1aa; margin-bottom: 3px; }
+    .filters-box input, .filters-box select { padding: 8px; font-size: 0.85rem; }
+    .btn-limpar-filtros { background: #3f3f46; color: #e4e4e7; border: none; border-radius: 6px; padding: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
     
     .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 
-    .table-container { max-height: 220px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 10px; }
+    .table-container { max-height: 280px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 10px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
     th, td { padding: 8px; border-bottom: 1px solid #3f3f46; color: #e4e4e7; }
     th { background: #27272a; position: sticky; top: 0; }
 
-    .chart-container { position: relative; height: 200px; margin: 14px 0; background: #262626; padding: 10px; border-radius: 8px; border: 1px solid #3f3f46; }
+    .chart-container { position: relative; height: 190px; margin: 14px 0; background: #262626; padding: 10px; border-radius: 8px; border: 1px solid #3f3f46; }
     
     .aba-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
     .aba-toggle button { flex: 1; padding: 10px; border: 1px solid #4b5563; background: #2a2a2a; color: #9ca3af; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
@@ -183,8 +189,8 @@
       
       <div class="filters-box">
         <div>
-          <label style="font-size: 0.75rem;">Pesquisar Brinco (Vaca ou Bezerro):</label>
-          <input type="text" id="filtroVaqueiro" placeholder="Digite o número..." oninput="filtrarTabelaVaqueiro()" style="padding: 10px; font-size: 0.95rem;">
+          <label>Pesquisar Brinco (Vaca ou Bezerro):</label>
+          <input type="text" id="filtroVaqueiro" placeholder="Digite o número..." oninput="filtrarTabelaVaqueiro()">
         </div>
       </div>
 
@@ -230,14 +236,14 @@
     <h2>Relatórios e Gráficos</h2>
     
     <div class="action-buttons">
-      <button class="main-btn" id="btnAtualizar" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 8px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
-      <button class="main-btn" style="background: #dc2626; color: #fff; font-size: 0.8rem; padding: 8px;" onclick="exportarRelatorioPDF()">📄 Baixar PDF</button>
+      <button class="main-btn" id="btnAtualizar" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
+      <button class="main-btn" style="background: #dc2626; color: #fff; font-size: 0.8rem; padding: 10px;" onclick="exportarRelatorioPDF()">📄 Baixar PDF</button>
     </div>
 
     <div class="metrics-grid">
       <div class="metric-card">
         <h3 id="totalNascimentos">0</h3>
-        <p>Total</p>
+        <p>Total Filtrado</p>
       </div>
       <div class="metric-card">
         <h3 id="totalMachos">0</h3>
@@ -253,19 +259,47 @@
       <canvas id="graficoMes"></canvas>
     </div>
 
+    <!-- Filtros e Ordenação -->
     <div class="filters-box">
-      <div>
-        <label style="font-size: 0.75rem;">Brinco:</label>
-        <input type="text" id="filtroBrinco" placeholder="Filtrar..." oninput="filtrarTabelaEscritorio()" style="padding: 8px; font-size: 0.9rem;">
+      <div class="filters-row">
+        <div>
+          <label>Data Inicial:</label>
+          <input type="date" id="filtroDataInicio" onchange="aplicarFiltrosEOrdenacao()">
+        </div>
+        <div>
+          <label>Data Final:</label>
+          <input type="date" id="filtroDataFim" onchange="aplicarFiltrosEOrdenacao()">
+        </div>
       </div>
-      <div style="margin-top: 6px;">
-        <label style="font-size: 0.75rem;">Sexo:</label>
-        <select id="filtroSexo" onchange="filtrarTabelaEscritorio()" style="padding: 8px; font-size: 0.9rem;">
-          <option value="" style="color:#000;">Todos</option>
-          <option value="Macho" style="color:#000;">Macho</option>
-          <option value="Fêmea" style="color:#000;">Fêmea</option>
-        </select>
+
+      <div class="filters-row">
+        <div>
+          <label>Brinco (Vaca ou Bezerro):</label>
+          <input type="text" id="filtroBrinco" placeholder="Ex: 502" oninput="aplicarFiltrosEOrdenacao()">
+        </div>
+        <div>
+          <label>Sexo:</label>
+          <select id="filtroSexo" onchange="aplicarFiltrosEOrdenacao()">
+            <option value="" style="color:#000;">Todos</option>
+            <option value="Macho" style="color:#000;">Macho</option>
+            <option value="Fêmea" style="color:#000;">Fêmea</option>
+          </select>
+        </div>
       </div>
+
+      <div class="filters-row" style="grid-template-columns: 1fr;">
+        <div>
+          <label>Ordenar Relatório por:</label>
+          <select id="ordenacaoSelect" onchange="aplicarFiltrosEOrdenacao()">
+            <option value="data_desc" style="color:#000;">Data (Mais recentes primeiro)</option>
+            <option value="data_asc" style="color:#000;">Data (Mais antigos primeiro)</option>
+            <option value="bezerro_asc" style="color:#000;">Nº Brinco Bezerro (Crescente)</option>
+            <option value="vaca_asc" style="color:#000;">Nº Brinco Vaca (Crescente)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-limpar-filtros" onclick="limparFiltrosEscritorio()">Limpar Filtros</button>
     </div>
 
     <div class="table-container">
@@ -341,11 +375,11 @@
       btnNovo.className = "";
       subConsulta.style.display = "block";
       subNovo.style.display = "none";
-      sincronizarSistema(); // Atualiza a lista ao abrir consulta
+      sincronizarSistema();
     }
   }
 
-  // Função auxiliar para converter AAAA-MM-DD em DD/MM/AAAA
+  // Converte AAAA-MM-DD para DD/MM/AAAA
   function formatarDataBR(dataIso) {
     if (!dataIso) return "";
     const partes = dataIso.split("-");
@@ -362,11 +396,10 @@
       if (json.status === "sucesso") {
         brincosEmUso = new Set(json.brincos);
         todosRegistros = json.registros || [];
-        registrosFiltradosAtuais = todosRegistros;
         document.getElementById('syncStatus').textContent = `Sistema Online (${brincosEmUso.size} na base)`;
         
-        // Atualiza tabela do vaqueiro se estiver visível
         renderizarTabelaVaqueiro(todosRegistros);
+        aplicarFiltrosEOrdenacao();
       }
     } catch (e) {
       document.getElementById('syncStatus').textContent = "Modo Offline / Sem conexão";
@@ -459,23 +492,59 @@
     btnAtu.disabled = true;
 
     await sincronizarSistema();
-    atualizarDashboard(todosRegistros);
+    renderizarGrafico(todosRegistros);
 
     btnAtu.textContent = "🔄 Atualizar";
     btnAtu.disabled = false;
   }
 
-  function atualizarDashboard(registros) {
-    document.getElementById('totalNascimentos').textContent = registros.length;
-    
-    const machos = registros.filter(r => r.sexo === 'Macho').length;
-    const femeas = registros.filter(r => r.sexo === 'Fêmea').length;
-    
-    document.getElementById('totalMachos').textContent = machos;
-    document.getElementById('totalFemeas').textContent = femeas;
+  function limparFiltrosEscritorio() {
+    document.getElementById('filtroDataInicio').value = "";
+    document.getElementById('filtroDataFim').value = "";
+    document.getElementById('filtroBrinco').value = "";
+    document.getElementById('filtroSexo').value = "";
+    document.getElementById('ordenacaoSelect').value = "data_desc";
+    aplicarFiltrosEOrdenacao();
+  }
 
-    renderizarTabelaEscritorio(registros);
-    renderizarGrafico(registros);
+  function aplicarFiltrosEOrdenacao() {
+    const dataInicio = document.getElementById('filtroDataInicio').value;
+    const dataFim = document.getElementById('filtroDataFim').value;
+    const termoBrinco = document.getElementById('filtroBrinco').value.trim().toUpperCase();
+    const filtroSexo = document.getElementById('filtroSexo').value;
+    const ordem = document.getElementById('ordenacaoSelect').value;
+
+    // 1. Filtragem
+    let resultado = todosRegistros.filter(r => {
+      const matchDataInicio = !dataInicio || (r.dataNascimento && r.dataNascimento >= dataInicio);
+      const matchDataFim = !dataFim || (r.dataNascimento && r.dataNascimento <= dataFim);
+      const matchBrinco = termoBrinco === "" || r.brincoBezerro.includes(termoBrinco) || r.brincoVaca.includes(termoBrinco);
+      const matchSexo = filtroSexo === "" || r.sexo === filtroSexo;
+      return matchDataInicio && matchDataFim && matchBrinco && matchSexo;
+    });
+
+    // 2. Ordenação (considerando números de brinco de forma natural/numérica)
+    resultado.sort((a, b) => {
+      if (ordem === "data_desc") {
+        return (b.dataNascimento || "").localeCompare(a.dataNascimento || "");
+      } else if (ordem === "data_asc") {
+        return (a.dataNascimento || "").localeCompare(b.dataNascimento || "");
+      } else if (ordem === "bezerro_asc") {
+        return a.brincoBezerro.localeCompare(b.brincoBezerro, undefined, { numeric: true });
+      } else if (ordem === "vaca_asc") {
+        return a.brincoVaca.localeCompare(b.brincoVaca, undefined, { numeric: true });
+      }
+      return 0;
+    });
+
+    registrosFiltradosAtuais = resultado;
+
+    // Atualiza contadores baseados no filtro atual
+    document.getElementById('totalNascimentos').textContent = registrosFiltradosAtuais.length;
+    document.getElementById('totalMachos').textContent = registrosFiltradosAtuais.filter(r => r.sexo === 'Macho').length;
+    document.getElementById('totalFemeas').textContent = registrosFiltradosAtuais.filter(r => r.sexo === 'Fêmea').length;
+
+    renderizarTabelaEscritorio(registrosFiltradosAtuais);
   }
 
   function renderizarTabelaEscritorio(registros) {
@@ -522,19 +591,6 @@
     });
   }
 
-  function filtrarTabelaEscritorio() {
-    const termoBrinco = document.getElementById('filtroBrinco').value.trim().toUpperCase();
-    const filtroSexo = document.getElementById('filtroSexo').value;
-
-    registrosFiltradosAtuais = todosRegistros.filter(r => {
-      const matchBrinco = termoBrinco === "" || r.brincoBezerro.includes(termoBrinco) || r.brincoVaca.includes(termoBrinco);
-      const matchSexo = filtroSexo === "" || r.sexo === filtroSexo;
-      return matchBrinco && matchSexo;
-    });
-
-    renderizarTabelaEscritorio(registrosFiltradosAtuais);
-  }
-
   function filtrarTabelaVaqueiro() {
     const termo = document.getElementById('filtroVaqueiro').value.trim().toUpperCase();
     const filtrados = todosRegistros.filter(r => {
@@ -552,20 +608,35 @@
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    // Cabeçalho do PDF
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(27, 94, 32);
     doc.text("Fazenda Volta Grande", 14, 20);
 
     doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Relatório de Controle de Nascimentos", 14, 28);
+    doc.setTextColor(80, 80, 80);
+    doc.text("Relatório de Controle de Nascimentos", 14, 27);
     
+    // Subtítulo dinâmico mostrando o período filtrado, se houver
+    const dtIni = document.getElementById('filtroDataInicio').value;
+    const dtFim = document.getElementById('filtroDataFim').value;
+    let textoPeriodo = "Período: Todo o histórico";
+    if (dtIni && dtFim) {
+      textoPeriodo = `Período: ${formatarDataBR(dtIni)} até ${formatarDataBR(dtFim)}`;
+    } else if (dtIni) {
+      textoPeriodo = `Período: A partir de ${formatarDataBR(dtIni)}`;
+    } else if (dtFim) {
+      textoPeriodo = `Período: Até ${formatarDataBR(dtFim)}`;
+    }
+
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 34);
+    doc.text(`${textoPeriodo}   |   Total: ${registrosFiltradosAtuais.length} animais`, 14, 33);
+    doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 38);
 
     doc.setDrawColor(200, 200, 200);
-    doc.line(14, 38, 196, 38);
+    doc.line(14, 42, 196, 42);
 
     const colunas = ["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação"];
     const linhas = registrosFiltradosAtuais.map(r => [
@@ -580,7 +651,7 @@
     doc.autoTable({
       head: [colunas],
       body: linhas,
-      startY: 44,
+      startY: 47,
       theme: 'grid',
       headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 9, cellPadding: 4 }
@@ -599,6 +670,11 @@
     });
 
     const mesesOrdenados = Object.keys(mesesContagem).sort();
+    // Formata o eixo X do gráfico para MM/AAAA
+    const labelsFormatadas = mesesOrdenados.map(m => {
+      const [ano, mes] = m.split("-");
+      return `${mes}/${ano}`;
+    });
     const valores = mesesOrdenados.map(m => mesesContagem[m]);
 
     const ctx = document.getElementById('graficoMes').getContext('2d');
@@ -607,7 +683,7 @@
     meuGrafico = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: mesesOrdenados,
+        labels: labelsFormatadas,
         datasets: [{
           label: 'Nascimentos',
           data: valores,
@@ -624,7 +700,7 @@
         },
         scales: {
           x: { ticks: { color: '#a1a1aa' }, grid: { color: '#3f3f46' } },
-          y: { ticks: { color: '#a1a1aa' }, grid: { color: '#3f3f46' } }
+          y: { ticks: { color: '#a1a1aa', precision: 0 }, grid: { color: '#3f3f46' } }
         }
       }
     });
