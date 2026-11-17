@@ -1,0 +1,45 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Bezerros</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#1b5e20">
+<link rel="stylesheet" href="../comum/estilo.css"></head><body>
+<header>🐄 Nascimento de Bezerros <button onclick="sair()">Sair</button></header>
+<main>
+<label>Brinco da vaca</label><input id="vaca" autocomplete="off">
+<label>Brinco do bezerro <small>(vazio só se nasceu morto)</small></label><input id="bezerro" autocomplete="off">
+<label>Sexo</label><select id="sexo"><option value="">Selecione</option><option>Macho</option><option>Fêmea</option></select>
+<label>Raça</label><select id="raca"><option value="">Selecione</option><option>Nelore</option><option>Angus</option><option>Girolando</option><option>Cruzado</option><option>Outra</option></select>
+<label>Data de nascimento</label><input id="data" type="date">
+<label>Situação</label><select id="situacao"><option value="">Selecione</option><option>Vivo / saudável</option><option>Fraco / em observação</option><option>Nasceu morto</option><option>Morreu após nascer</option></select>
+<label>Observação (opcional)</label><textarea id="obs" rows="2"></textarea>
+<button id="btn" onclick="enviar()">SALVAR</button>
+<div id="msg"></div><p id="pend"></p>
+<h3>Últimos lançamentos</h3><table id="lista"></table>
+</main>
+<script src="../comum/config.js"></script><script src="../comum/api.js"></script>
+<script>
+const h=new Date();h.setMinutes(h.getMinutes()-h.getTimezoneOffset());$('data').value=h.toISOString().slice(0,10);
+const lerFila=()=>JSON.parse(localStorage.getItem('fila')||'[]');
+const gravaFila=f=>{localStorage.setItem('fila',JSON.stringify(f));$('pend').textContent=f.length?'⏳ '+f.length+' aguardando envio (sem sinal)':'';};
+const nz=v=>String(v).toUpperCase().replace(/\s+/g,'');
+function mostrar(ok,t){const m=$('msg');m.style.display='block';m.className=ok?'ok':'erro';m.textContent=t;}
+function limpar(){['vaca','bezerro','obs'].forEach(i=>$(i).value='');$('sexo').value='';$('situacao').value='';}
+async function enviar(){
+ const d={vaca:$('vaca').value.trim(),bezerro:$('bezerro').value.trim(),sexo:$('sexo').value,raca:$('raca').value,data:$('data').value,situacao:$('situacao').value,obs:$('obs').value};
+ if(!d.vaca||(!d.bezerro&&d.situacao!='Nasceu morto')||!d.sexo||!d.raca||!d.data||!d.situacao)return mostrar(false,'Preencha todos os campos.');
+ $('btn').disabled=true;
+ try{const r=await api('salvar',d);mostrar(r.ok,r.msg);if(r.ok){limpar();carregar();}}
+ catch(e){const f=lerFila();
+  if(d.bezerro&&f.some(x=>nz(x.bezerro)==nz(d.bezerro)))mostrar(false,'Esse bezerro já está na fila deste aparelho.');
+  else{f.push(d);gravaFila(f);limpar();mostrar(true,'Sem sinal: salvo no aparelho. Envia sozinho quando voltar.');}}
+ $('btn').disabled=false;
+}
+let busy=false;
+async function sincronizar(){const f=lerFila();if(busy||!f.length)return;busy=true;const resto=[],erros=[];
+ for(const d of f){try{const r=await api('salvar',d);if(!r.ok)erros.push((d.bezerro||d.vaca)+': '+r.msg);}catch(e){resto.push(d);}}
+ gravaFila(resto);busy=false;if(erros.length)mostrar(false,'Não enviados: '+erros.join(' | '));carregar();}
+async function carregar(){try{const r=await api('ultimos');if(!r.ok)return;
+ $('lista').innerHTML='<tr><th>Vaca</th><th>Bezerro</th><th>Sexo</th><th>Raça</th><th>Nasc.</th><th>Situação</th></tr>'+
+ r.dados.map(x=>'<tr>'+[x.vaca,x.bezerro,x.sexo,x.raca,x.nasc.split('-').reverse().join('/'),x.situacao].map(c=>'<td>'+String(c).replace(/</g,'&lt;')+'</td>').join('')+'</tr>').join('');}catch(e){}}
+exigirLogin(['vaqueiro','gestor'],()=>{gravaFila(lerFila());carregar();sincronizar();});
+addEventListener('online',sincronizar);setInterval(sincronizar,30000);
+</script></body></html>
