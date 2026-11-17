@@ -1,45 +1,217 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Bezerros</title>
-<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#1b5e20">
-<link rel="stylesheet" href="../comum/estilo.css"></head><body>
-<header>🐄 Nascimento de Bezerros <button onclick="sair()">Sair</button></header>
-<main>
-<label>Brinco da vaca</label><input id="vaca" autocomplete="off">
-<label>Brinco do bezerro <small>(vazio só se nasceu morto)</small></label><input id="bezerro" autocomplete="off">
-<label>Sexo</label><select id="sexo"><option value="">Selecione</option><option>Macho</option><option>Fêmea</option></select>
-<label>Raça</label><select id="raca"><option value="">Selecione</option><option>Nelore</option><option>Angus</option><option>Girolando</option><option>Cruzado</option><option>Outra</option></select>
-<label>Data de nascimento</label><input id="data" type="date">
-<label>Situação</label><select id="situacao"><option value="">Selecione</option><option>Vivo / saudável</option><option>Fraco / em observação</option><option>Nasceu morto</option><option>Morreu após nascer</option></select>
-<label>Observação (opcional)</label><textarea id="obs" rows="2"></textarea>
-<button id="btn" onclick="enviar()">SALVAR</button>
-<div id="msg"></div><p id="pend"></p>
-<h3>Últimos lançamentos</h3><table id="lista"></table>
-</main>
-<script src="../comum/config.js"></script><script src="../comum/api.js"></script>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Nascimentos</title>
+  <style>
+    :root {
+      --primary: #1b5e20;
+      --primary-light: #2e7d32;
+      --bg: #f4f6f4;
+      --card: #ffffff;
+      --text: #1f2937;
+      --danger: #c62828;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); }
+    .container { max-width: 480px; margin: 0 auto; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h1 { margin: 0 0 6px 0; font-size: 1.4rem; color: var(--primary); text-align: center; }
+    .subtitle { text-align: center; font-size: 0.85rem; color: #6b7280; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.95rem; }
+    input, select, textarea {
+      width: 100%; padding: 14px; border: 2px solid #d1d5db; border-radius: 8px;
+      font-size: 1.05rem; background: #fff; transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; }
+    .radio-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .radio-btn {
+      padding: 14px; border: 2px solid #d1d5db; border-radius: 8px; text-align: center;
+      font-weight: 700; cursor: pointer; background: #f9fafb; user-select: none;
+    }
+    .radio-btn.active { border-color: var(--primary); background: #e8f5e9; color: var(--primary); }
+    button[type="submit"] {
+      width: 100%; padding: 16px; background: var(--primary); color: white; border: none;
+      border-radius: 8px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 8px;
+    }
+    button[type="submit"]:disabled { background: #9ca3af; cursor: not-allowed; }
+    .alert { padding: 14px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; display: none; }
+    .alert-error { background: #ffebee; color: var(--danger); border: 1px solid #ef9a9a; }
+    .alert-success { background: #e8f5e9; color: var(--primary); border: 1px solid #a5d6a7; }
+    .status-sync { font-size: 0.8rem; text-align: center; color: #6b7280; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Controle de Nascimentos</h1>
+  <div class="subtitle">Lançamento de Campo</div>
+  <div id="syncStatus" class="status-sync">Sincronizando brincos existentes...</div>
+
+  <div id="alertBox" class="alert"></div>
+
+  <form id="nascimentoForm">
+    <div class="form-group">
+      <label for="brincoVaca">Brinco da Vaca (Mãe) *</label>
+      <input type="text" id="brincoVaca" required placeholder="Ex: 1045" autocomplete="off">
+    </div>
+
+    <div class="form-group">
+      <label for="brincoBezerro">Brinco do Bezerro *</label>
+      <input type="text" id="brincoBezerro" required placeholder="Ex: 502" autocomplete="off">
+    </div>
+
+    <div class="form-group">
+      <label>Sexo do Bezerro *</label>
+      <div class="radio-group">
+        <div class="radio-btn" data-value="Macho" onclick="selecionarSexo(this)">Macho</div>
+        <div class="radio-btn" data-value="Fêmea" onclick="selecionarSexo(this)">Fêmea</div>
+      </div>
+      <input type="hidden" id="sexo" required>
+    </div>
+
+    <div class="form-group">
+      <label for="raca">Raça do Bezerro *</label>
+      <select id="raca" required>
+        <option value="">Selecione a raça...</option>
+        <option value="Nelore">Nelore</option>
+        <option value="Angus">Angus</option>
+        <option value="Cruzamento Industrial">Cruzamento Industrial</option>
+        <option value="Brahman">Brahman</option>
+        <option value="Girolando">Girolando</option>
+        <option value="Outra">Outra</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="dataNascimento">Data de Nascimento *</label>
+      <input type="date" id="dataNascimento" required>
+    </div>
+
+    <div class="form-group">
+      <label for="situacao">Situação *</label>
+      <select id="situacao" required>
+        <option value="Vivo - Saudável">Vivo - Saudável</option>
+        <option value="Vivo - Debilitado / Requer Atenção">Vivo - Debilitado / Requer Atenção</option>
+        <option value="Natimorto (Nasceu Morto)">Natimorto (Nasceu Morto)</option>
+        <option value="Aborto">Aborto</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="observacoes">Observações (Opcional)</label>
+      <textarea id="observacoes" rows="2" placeholder="Ex: Parto auxiliado, mãe rejeitou, etc."></textarea>
+    </div>
+
+    <button type="submit" id="btnSalvar">Salvar Nascimento</button>
+  </form>
+</div>
+
 <script>
-const h=new Date();h.setMinutes(h.getMinutes()-h.getTimezoneOffset());$('data').value=h.toISOString().slice(0,10);
-const lerFila=()=>JSON.parse(localStorage.getItem('fila')||'[]');
-const gravaFila=f=>{localStorage.setItem('fila',JSON.stringify(f));$('pend').textContent=f.length?'⏳ '+f.length+' aguardando envio (sem sinal)':'';};
-const nz=v=>String(v).toUpperCase().replace(/\s+/g,'');
-function mostrar(ok,t){const m=$('msg');m.style.display='block';m.className=ok?'ok':'erro';m.textContent=t;}
-function limpar(){['vaca','bezerro','obs'].forEach(i=>$(i).value='');$('sexo').value='';$('situacao').value='';}
-async function enviar(){
- const d={vaca:$('vaca').value.trim(),bezerro:$('bezerro').value.trim(),sexo:$('sexo').value,raca:$('raca').value,data:$('data').value,situacao:$('situacao').value,obs:$('obs').value};
- if(!d.vaca||(!d.bezerro&&d.situacao!='Nasceu morto')||!d.sexo||!d.raca||!d.data||!d.situacao)return mostrar(false,'Preencha todos os campos.');
- $('btn').disabled=true;
- try{const r=await api('salvar',d);mostrar(r.ok,r.msg);if(r.ok){limpar();carregar();}}
- catch(e){const f=lerFila();
-  if(d.bezerro&&f.some(x=>nz(x.bezerro)==nz(d.bezerro)))mostrar(false,'Esse bezerro já está na fila deste aparelho.');
-  else{f.push(d);gravaFila(f);limpar();mostrar(true,'Sem sinal: salvo no aparelho. Envia sozinho quando voltar.');}}
- $('btn').disabled=false;
-}
-let busy=false;
-async function sincronizar(){const f=lerFila();if(busy||!f.length)return;busy=true;const resto=[],erros=[];
- for(const d of f){try{const r=await api('salvar',d);if(!r.ok)erros.push((d.bezerro||d.vaca)+': '+r.msg);}catch(e){resto.push(d);}}
- gravaFila(resto);busy=false;if(erros.length)mostrar(false,'Não enviados: '+erros.join(' | '));carregar();}
-async function carregar(){try{const r=await api('ultimos');if(!r.ok)return;
- $('lista').innerHTML='<tr><th>Vaca</th><th>Bezerro</th><th>Sexo</th><th>Raça</th><th>Nasc.</th><th>Situação</th></tr>'+
- r.dados.map(x=>'<tr>'+[x.vaca,x.bezerro,x.sexo,x.raca,x.nasc.split('-').reverse().join('/'),x.situacao].map(c=>'<td>'+String(c).replace(/</g,'&lt;')+'</td>').join('')+'</tr>').join('');}catch(e){}}
-exigirLogin(['vaqueiro','gestor'],()=>{gravaFila(lerFila());carregar();sincronizar();});
-addEventListener('online',sincronizar);setInterval(sincronizar,30000);
-</script></body></html>
+  // =========================================================================
+  // COLE ABAIXO A URL DO SEU GOOGLE APPS SCRIPT (GERADA NO PASSO 2)
+  // =========================================================================
+  const SCRIPT_URL = "COLE_SUA_URL_AQUI";
+
+  let brincosEmUso = new Set();
+
+  // Define a data de hoje como padrão
+  document.getElementById('dataNascimento').valueAsDate = new Date();
+
+  // Carrega brincos já cadastrados ao abrir a página
+  async function carregarBrincosExistentes() {
+    const statusEl = document.getElementById('syncStatus');
+    try {
+      const resp = await fetch(SCRIPT_URL);
+      const json = await resp.json();
+      if (json.status === "sucesso") {
+        brincosEmUso = new Set(json.brincos);
+        statusEl.textContent = `Conectado (${brincosEmUso.size} bezerros já registrados)`;
+      }
+    } catch (e) {
+      statusEl.textContent = "Aviso: Validação local em modo offline (o servidor validará ao enviar).";
+    }
+  }
+
+  carregarBrincosExistentes();
+
+  function selecionarSexo(elemento) {
+    document.querySelectorAll('.radio-btn').forEach(btn => btn.classList.remove('active'));
+    elemento.classList.add('active');
+    document.getElementById('sexo').value = elemento.getAttribute('data-value');
+  }
+
+  function mostrarAlerta(mensagem, tipo) {
+    const alertBox = document.getElementById('alertBox');
+    alertBox.textContent = mensagem;
+    alertBox.className = 'alert ' + (tipo === 'erro' ? 'alert-error' : 'alert-success');
+    alertBox.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('nascimentoForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const sexo = document.getElementById('sexo').value;
+    if (!sexo) {
+      mostrarAlerta("Por favor, selecione o Sexo do bezerro (Macho ou Fêmea).", "erro");
+      return;
+    }
+
+    const brincoBezerro = document.getElementById('brincoBezerro').value.trim().toUpperCase();
+
+    // 1ª Barreira: Validação imediata na tela
+    if (brincosEmUso.has(brincoBezerro)) {
+      mostrarAlerta(`BLOQUEADO: O brinco nº ${brincoBezerro} já foi usado em outro bezerro!`, "erro");
+      return;
+    }
+
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+    btn.textContent = "Verificando e Salvando...";
+    document.getElementById('alertBox').style.display = 'none';
+
+    const payload = {
+      brincoVaca: document.getElementById('brincoVaca').value,
+      brincoBezerro: brincoBezerro,
+      sexo: sexo,
+      raca: document.getElementById('raca').value,
+      dataNascimento: document.getElementById('dataNascimento').value,
+      situacao: document.getElementById('situacao').value,
+      observacoes: document.getElementById('observacoes').value
+    };
+
+    try {
+      // Envia para o Google Apps Script (2ª Barreira: Validação no servidor)
+      const response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (result.status === "sucesso") {
+        mostrarAlerta(result.mensagem, "sucesso");
+        brincosEmUso.add(brincoBezerro);
+        document.getElementById('syncStatus').textContent = `Conectado (${brincosEmUso.size} bezerros já registrados)`;
+        
+        // Limpa os campos para o próximo lançamento
+        document.getElementById('nascimentoForm').reset();
+        document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('sexo').value = "";
+        document.getElementById('dataNascimento').valueAsDate = new Date();
+      } else {
+        mostrarAlerta(result.mensagem, "erro");
+      }
+    } catch (error) {
+      mostrarAlerta("Erro de conexão com a internet. Verifique o sinal e tente novamente.", "erro");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Salvar Nascimento";
+    }
+  });
+</script>
+
+</body>
+</html>
