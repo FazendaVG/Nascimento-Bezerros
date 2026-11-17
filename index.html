@@ -4,7 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fazenda Volta Grande - Controle de Nascimentos</title>
+  <!-- Chart.js para os gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Biblioteca jsPDF para gerar PDFs direto no navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  
   <style>
     :root {
       --primary: #1b5e20;
@@ -68,12 +73,14 @@
 
     .filters-box { background: #262626; padding: 10px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     
-    .table-container { max-height: 280px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 10px; }
+    .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+
+    .table-container { max-height: 260px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 10px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
     th, td { padding: 8px; border-bottom: 1px solid #3f3f46; color: #e4e4e7; }
     th { background: #27272a; position: sticky; top: 0; }
 
-    .chart-container { position: relative; height: 220px; margin: 16px 0; background: #262626; padding: 10px; border-radius: 8px; border: 1px solid #3f3f46; }
+    .chart-container { position: relative; height: 200px; margin: 14px 0; background: #262626; padding: 10px; border-radius: 8px; border: 1px solid #3f3f46; }
   </style>
 </head>
 <body>
@@ -180,7 +187,11 @@
       <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande</span>
     </div>
     <h2>Relatórios e Gráficos</h2>
-    <button class="main-btn" style="background: #374151; color: #fff; font-size: 0.85rem; padding: 8px; margin-bottom: 12px;" onclick="carregarDadosEscritorio()">🔄 Atualizar Dados</button>
+    
+    <div class="action-buttons">
+      <button class="main-btn" style="background: #374151; color: #fff; font-size: 0.8rem; padding: 8px;" onclick="carregarDadosEscritorio()">🔄 Atualizar</button>
+      <button class="main-btn" style="background: #dc2626; color: #fff; font-size: 0.8rem; padding: 8px;" onclick="exportarRelatorioPDF()">📄 Baixar PDF</button>
+    </div>
 
     <div class="metrics-grid">
       <div class="metric-card">
@@ -244,6 +255,7 @@
 
   let brincosEmUso = new Set();
   let todosRegistros = [];
+  let registrosFiltradosAtuais = [];
   let meuGrafico = null;
 
   document.getElementById('dataNascimento').valueAsDate = new Date();
@@ -273,6 +285,7 @@
       if (json.status === "sucesso") {
         brincosEmUso = new Set(json.brincos);
         todosRegistros = json.registros;
+        registrosFiltradosAtuais = todosRegistros;
         document.getElementById('syncStatus').textContent = `Sistema Online (${brincosEmUso.size} na base)`;
       }
     } catch (e) {
@@ -402,13 +415,63 @@
     const termoBrinco = document.getElementById('filtroBrinco').value.trim().toUpperCase();
     const filtroSexo = document.getElementById('filtroSexo').value;
 
-    const filtrados = todosRegistros.filter(r => {
+    registrosFiltradosAtuais = todosRegistros.filter(r => {
       const matchBrinco = termoBrinco === "" || r.brincoBezerro.includes(termoBrinco) || r.brincoVaca.includes(termoBrinco);
       const matchSexo = filtroSexo === "" || r.sexo === filtroSexo;
       return matchBrinco && matchSexo;
     });
 
-    renderizarTabela(filtrados);
+    renderizarTabela(registrosFiltradosAtuais);
+  }
+
+  function exportarRelatorioPDF() {
+    if (registrosFiltradosAtuais.length === 0) {
+      alert("Não há dados para exportar no relatório.");
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Cabeçalho do PDF
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(27, 94, 32); // Cor verde fazenda
+    doc.text("Fazenda Volta Grande", 14, 20);
+
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Relatório de Controle de Nascimentos", 14, 28);
+    
+    doc.setFontSize(9);
+    doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 34);
+
+    // Linha divisória
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 38, 196, 38);
+
+    // Dados da Tabela
+    const colunas = ["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação"];
+    const linhas = registrosFiltradosAtuais.map(r => [
+      r.dataNascimento,
+      r.brincoVaca,
+      r.brincoBezerro,
+      r.sexo,
+      r.raca,
+      r.situacao
+    ]);
+
+    doc.autoTable({
+      head: [colunas],
+      body: linhas,
+      startY: 44,
+      theme: 'grid',
+      headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 4 }
+    });
+
+    // Salva o arquivo PDF
+    doc.save("relatorio_nascimentos_volta_grande.pdf");
   }
 
   function renderizarGrafico(registros) {
