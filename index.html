@@ -1233,10 +1233,10 @@
   function exportarRelatorioPDF() {
     if (registrosFiltradosAtuais.length === 0) { alert("Não há dados para exportar no relatório."); return; }
     const { jsPDF } = window.jspdf;
-    // Folha deitada (paisagem): cabe a tabela inteira com letra grande para impressão
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const largura = doc.internal.pageSize.getWidth();    // 297 mm
-    const altura = doc.internal.pageSize.getHeight();    // 210 mm
+    // Folha em pé (retrato): cabem mais linhas por página; letra 11 para impressão
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const largura = doc.internal.pageSize.getWidth();    // 210 mm
+    const altura = doc.internal.pageSize.getHeight();    // 297 mm
     const lista = registrosFiltradosAtuais;
 
     doc.setFont("helvetica", "bold");
@@ -1261,25 +1261,26 @@
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
-    doc.text(`${textoPeriodo}   |   Total: ${lista.length} animais   |   Machos: ${machos}   |   Fêmeas: ${femeas}` +
-      (perdas ? `   |   Natimortos/abortos: ${perdas}` : ''), 14, 34);
+    doc.text(textoPeriodo, 14, 34);
+    doc.text(`Total: ${lista.length} animais   |   Machos: ${machos}   |   Fêmeas: ${femeas}` +
+      (perdas ? `   |   Natimortos/abortos: ${perdas}` : ''), 14, 40);
     doc.setFontSize(10);
     doc.setTextColor(90, 90, 90);
-    doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 40);
+    doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 46);
 
     doc.setDrawColor(200, 200, 200);
-    doc.line(14, 44, largura - 14, 44);
+    doc.line(14, 50, largura - 14, 50);
 
     doc.autoTable({
       head: [["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Enviado em"]],
       body: lista.map(r => [formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao, gemeoCom(r), r.lancadoEm || ""]),
-      startY: 48,
+      startY: 54,
       margin: { left: 14, right: 14, bottom: 16 },
       theme: 'grid',
-      headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 12 },
-      styles: { fontSize: 12, cellPadding: 2.5, textColor: [20, 20, 20], lineColor: [170, 170, 170] },
+      headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 11 },
+      styles: { fontSize: 11, cellPadding: 2, overflow: 'linebreak', textColor: [20, 20, 20], lineColor: [170, 170, 170] },
       alternateRowStyles: { fillColor: [242, 247, 242] },
-      columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 24, fontStyle: 'bold' }, 2: { cellWidth: 30, fontStyle: 'bold' }, 7: { cellWidth: 38 } },
+      columnStyles: { 0: { cellWidth: 23 }, 1: { cellWidth: 17, fontStyle: 'bold' }, 2: { cellWidth: 24, fontStyle: 'bold' }, 3: { cellWidth: 17 }, 7: { cellWidth: 26 } },
       // rodapé em todas as páginas: número da página
       didDrawPage: () => {
         doc.setFont("helvetica", "normal");
