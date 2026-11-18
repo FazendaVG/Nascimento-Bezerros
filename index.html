@@ -58,6 +58,10 @@
       font-size: 1rem; background: #2a2a2a; color: #fff;
     }
     input:focus, select:focus { border-color: #22c55e; outline: none; }
+    /* lista aberta dos filtros/seleções: texto claro sobre fundo escuro (antes ficava preto) */
+    select { color-scheme: dark; }
+    select option { background: #2a2a2a; color: #f3f4f6; }
+    select option:checked { background: #064e3b; color: #22c55e; }
     .radio-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .radio-btn {
       padding: 12px; border: 1px solid #4b5563; border-radius: 8px; text-align: center;
@@ -203,13 +207,13 @@
         <div class="form-group">
           <label for="raca">Raça do Bezerro *</label>
           <select id="raca" required>
-            <option value="" style="color:#000;">Selecione...</option>
-            <option value="Nelore" style="color:#000;">Nelore</option>
-            <option value="Angus" style="color:#000;">Angus</option>
-            <option value="Cruzamento Industrial" style="color:#000;">Cruzamento Industrial</option>
-            <option value="Brahman" style="color:#000;">Brahman</option>
-            <option value="Girolando" style="color:#000;">Girolando</option>
-            <option value="Outra" style="color:#000;">Outra</option>
+            <option value="">Selecione...</option>
+            <option value="Nelore">Nelore</option>
+            <option value="Angus">Angus</option>
+            <option value="Cruzamento Industrial">Cruzamento Industrial</option>
+            <option value="Brahman">Brahman</option>
+            <option value="Girolando">Girolando</option>
+            <option value="Outra">Outra</option>
           </select>
         </div>
 
@@ -221,10 +225,10 @@
         <div class="form-group">
           <label for="situacao" id="lblSituacao1">Situação *</label>
           <select id="situacao" required>
-            <option value="Vivo - Saudável" style="color:#000;">Vivo - Saudável</option>
-            <option value="Vivo - Requer Atenção" style="color:#000;">Vivo - Requer Atenção</option>
-            <option value="Natimorto" style="color:#000;">Natimorto (Nasceu Morto)</option>
-            <option value="Aborto" style="color:#000;">Aborto</option>
+            <option value="Vivo - Saudável">Vivo - Saudável</option>
+            <option value="Vivo - Requer Atenção">Vivo - Requer Atenção</option>
+            <option value="Natimorto">Natimorto (Nasceu Morto)</option>
+            <option value="Aborto">Aborto</option>
           </select>
         </div>
 
@@ -366,9 +370,9 @@
         <div>
           <label>Sexo:</label>
           <select id="filtroSexo" onchange="aplicarFiltrosEOrdenacao()">
-            <option value="" style="color:#000;">Todos</option>
-            <option value="Macho" style="color:#000;">Macho</option>
-            <option value="Fêmea" style="color:#000;">Fêmea</option>
+            <option value="">Todos</option>
+            <option value="Macho">Macho</option>
+            <option value="Fêmea">Fêmea</option>
           </select>
         </div>
       </div>
@@ -377,10 +381,10 @@
         <div>
           <label>Conferência:</label>
           <select id="filtroConferencia" onchange="aplicarFiltrosEOrdenacao()">
-            <option value="" style="color:#000;">Todos</option>
-            <option value="nao" style="color:#000;" selected>Não conferidos</option>
-            <option value="sim" style="color:#000;">Conferidos</option>
-            <option value="corr" style="color:#000;">Com correção pedida</option>
+            <option value="">Todos</option>
+            <option value="nao" selected>Não conferidos</option>
+            <option value="sim">Conferidos</option>
+            <option value="corr">Com correção pedida</option>
           </select>
         </div>
         <div>
@@ -392,10 +396,10 @@
         <div>
           <label>Ordenar Relatório por:</label>
           <select id="ordenacaoSelect" onchange="aplicarFiltrosEOrdenacao()">
-            <option value="data_desc" style="color:#000;">Data (Mais recentes primeiro)</option>
-            <option value="data_asc" style="color:#000;">Data (Mais antigos primeiro)</option>
-            <option value="bezerro_asc" style="color:#000;">Nº Brinco Bezerro (Crescente)</option>
-            <option value="vaca_asc" style="color:#000;">Nº Brinco Vaca (Crescente)</option>
+            <option value="data_desc">Data (Mais recentes primeiro)</option>
+            <option value="data_asc">Data (Mais antigos primeiro)</option>
+            <option value="bezerro_asc">Nº Brinco Bezerro (Crescente)</option>
+            <option value="vaca_asc">Nº Brinco Vaca (Crescente)</option>
           </select>
         </div>
       </div>
@@ -461,7 +465,7 @@
     <div class="form-group"><label for="mVaca">Brinco da Vaca</label><input type="text" id="mVaca" autocomplete="off"></div>
     <div class="form-group"><label for="mBezerro">Brinco do Bezerro</label><input type="text" id="mBezerro" autocomplete="off"></div>
     <div class="form-group"><label for="mSexo">Sexo</label>
-      <select id="mSexo"><option value="Macho" style="color:#000;">Macho</option><option value="Fêmea" style="color:#000;">Fêmea</option><option value="Não identificado" style="color:#000;">Não identificado (aborto)</option></select></div>
+      <select id="mSexo"><option value="Macho">Macho</option><option value="Fêmea">Fêmea</option><option value="Não identificado">Não identificado (aborto)</option></select></div>
     <div class="form-group"><label for="mRaca">Raça</label><select id="mRaca"></select></div>
     <div class="form-group"><label for="mData">Data de Nascimento</label><input type="date" id="mData"></div>
     <div class="form-group"><label class="check-gemeos"><input type="checkbox" id="mGemeos"> 👯 Parto de gêmeos</label></div>
