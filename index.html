@@ -120,7 +120,12 @@
     @media (min-width: 900px) {
       .container.larga { padding: 24px 32px; }
       .painel-grid { display: grid; grid-template-columns: minmax(340px, 5fr) minmax(0, 7fr); gap: 24px; align-items: start; }
-      .painel-dir .table-container { max-height: calc(100vh - 150px); margin-top: 0; }
+      /* o relatório fica fixo na tela e rola sozinho; filtros e gráfico rolam com a página */
+      .painel-dir { position: sticky; top: 16px; }
+      .painel-dir .table-container { max-height: calc(100vh - 48px); overflow-y: auto; margin-top: 0; scrollbar-width: thin; scrollbar-color: #52525b #27272a; }
+      .painel-dir .table-container::-webkit-scrollbar { width: 10px; }
+      .painel-dir .table-container::-webkit-scrollbar-track { background: #27272a; }
+      .painel-dir .table-container::-webkit-scrollbar-thumb { background: #52525b; border-radius: 6px; }
       .painel-dir table { font-size: 0.9rem; }
       .painel-dir th, .painel-dir td { padding: 10px; }
       .container.larga .chart-container { height: 260px; }
