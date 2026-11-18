@@ -338,6 +338,7 @@
         <p>Não conferidos</p>
       </div>
     </div>
+    <div id="resumoDia" class="subtitle" style="display:none; margin-bottom: 12px; color: #38bdf8;"></div>
 
     <div class="chart-container">
       <canvas id="graficoMes"></canvas>
@@ -381,6 +382,12 @@
             <option value="corr" style="color:#000;">Com correção pedida</option>
           </select>
         </div>
+        <div>
+          <label>Enviado no dia:</label>
+          <input type="date" id="filtroDiaEnvio" onchange="aoMudarDiaEnvio()">
+        </div>
+      </div>
+      <div class="filters-row" style="grid-template-columns: 1fr;">
         <div>
           <label>Ordenar Relatório por:</label>
           <select id="ordenacaoSelect" onchange="aplicarFiltrosEOrdenacao()">
@@ -871,12 +878,27 @@
     }
   }
 
+  // "17/11/2026 14:30" (ou "2026-11-17...") -> "2026-11-17"
+  function diaDoEnvio(txt) {
+    const t = String(txt || '');
+    let m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[0] : '';
+  }
+  // Ao escolher um dia, mostra também os já conferidos (senão a contagem fica incompleta)
+  function aoMudarDiaEnvio() {
+    if ($('filtroDiaEnvio').value && $('filtroConferencia').value === 'nao') $('filtroConferencia').value = "";
+    aplicarFiltrosEOrdenacao();
+  }
+
   function limparFiltrosEscritorio() {
     $('filtroDataInicio').value = "";
     $('filtroDataFim').value = "";
     $('filtroBrinco').value = "";
     $('filtroSexo').value = "";
     $('filtroConferencia').value = "nao";
+    $('filtroDiaEnvio').value = "";
     $('ordenacaoSelect').value = "data_desc";
     aplicarFiltrosEOrdenacao();
   }
@@ -887,6 +909,7 @@
     const termo = $('filtroBrinco').value.trim().toUpperCase();
     const filtroSexo = $('filtroSexo').value;
     const filtroConf = $('filtroConferencia').value;
+    const diaEnvio = $('filtroDiaEnvio').value;
     const ordem = $('ordenacaoSelect').value;
 
     const resultado = registrosAdmin.filter(r => {
@@ -895,7 +918,8 @@
       const okBrinco = termo === "" || String(r.brincoBezerro).toUpperCase().includes(termo) || String(r.brincoVaca).toUpperCase().includes(termo);
       const okSexo = filtroSexo === "" || r.sexo === filtroSexo;
       const okConf = filtroConf === "" || (filtroConf === "corr" ? !!r.correcao : (filtroConf === "sim") === (r.conferido === 'Sim'));
-      return okIni && okFim && okBrinco && okSexo && okConf;
+      const okDia = !diaEnvio || diaDoEnvio(r.lancadoEm) === diaEnvio;
+      return okIni && okFim && okBrinco && okSexo && okConf && okDia;
     });
 
     const num = { numeric: true };
@@ -912,6 +936,12 @@
     $('totalMachos').textContent = resultado.filter(r => r.sexo === 'Macho').length;
     $('totalFemeas').textContent = resultado.filter(r => r.sexo === 'Fêmea').length;
     $('totalPendentes').textContent = resultado.filter(r => r.conferido !== 'Sim').length;
+    const rd = $('resumoDia');
+    if (diaEnvio) {
+      const conf = resultado.filter(r => r.conferido === 'Sim').length;
+      rd.textContent = `Enviados em ${formatarDataBR(diaEnvio)}: ${resultado.length} bezerro(s) - ${conf} conferido(s), ${resultado.length - conf} não conferido(s).`;
+      rd.style.display = 'block';
+    } else { rd.style.display = 'none'; }
 
     renderizarTabelaEscritorio(resultado);
     renderizarGrafico(resultado);   // agora o gráfico acompanha os filtros
