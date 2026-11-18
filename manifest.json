@@ -1,20 +1,32 @@
 {
-  "name": "Fazenda Volta Grande",
+  "id": "./",
+  "name": "Fazenda Volta Grande - Controle de Nascimentos",
   "short_name": "Volta Grande",
-  "start_url": "./index.html",
+  "description": "Controle de nascimentos de bezerros da Fazenda Volta Grande",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#1b5e20",
+  "lang": "pt-BR",
+  "background_color": "#1d1d1b",
+  "theme_color": "#1d1d1b",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "logo.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

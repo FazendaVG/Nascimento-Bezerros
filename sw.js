@@ -1,9 +1,9 @@
 // Service Worker - Fazenda Volta Grande
 // Sempre que alterar o index.html, aumente o número da versão abaixo
 // para que os aparelhos baixem a versão nova.
-const VERSAO = 'vg-v3';
+const VERSAO = 'vg-v4';
 
-const ARQUIVOS_LOCAIS = ['./', 'index.html', 'manifest.json', 'logo.png'];
+const ARQUIVOS_LOCAIS = ['./', 'index.html', 'manifest.json', 'logo.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 const ARQUIVOS_CDN = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
