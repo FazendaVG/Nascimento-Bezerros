@@ -138,6 +138,8 @@
     tr.tem-corr td { background: rgba(239,68,68,0.10); }
     tr.tem-corr td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
     .btn-corr { background: #374151; color: #fff; border: none; border-radius: 6px; padding: 6px 8px; font-size: 0.7rem; cursor: pointer; white-space: nowrap; }
+    .toast { display: none; position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #16a34a; color: #fff; padding: 10px 16px; border-radius: 10px; z-index: 60; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .toast button { margin-left: 12px; background: #fff; color: #166534; border: none; border-radius: 6px; padding: 4px 10px; font-weight: 700; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -374,7 +376,7 @@
           <label>Conferência:</label>
           <select id="filtroConferencia" onchange="aplicarFiltrosEOrdenacao()">
             <option value="" style="color:#000;">Todos</option>
-            <option value="nao" style="color:#000;">Não conferidos</option>
+            <option value="nao" style="color:#000;" selected>Não conferidos</option>
             <option value="sim" style="color:#000;">Conferidos</option>
             <option value="corr" style="color:#000;">Com correção pedida</option>
           </select>
@@ -418,6 +420,8 @@
 
 <!-- ================= MODAL DE EDIÇÃO (ESCRITÓRIO) ================= -->
 <!-- ================= PEDIDO DE CORREÇÃO (VAQUEIRO) ================= -->
+<div class="toast" id="toastDesfazer"></div>
+
 <div class="modal-overlay" id="modalCorrecao">
   <div class="modal">
     <h2>Pedir correção</h2>
@@ -867,7 +871,7 @@
     $('filtroDataFim').value = "";
     $('filtroBrinco').value = "";
     $('filtroSexo').value = "";
-    $('filtroConferencia').value = "";
+    $('filtroConferencia').value = "nao";
     $('ordenacaoSelect').value = "data_desc";
     aplicarFiltrosEOrdenacao();
   }
@@ -911,7 +915,7 @@
   function renderizarTabelaEscritorio(registros) {
     const tbody = $('corpoTabela');
     if (registros.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhum registro encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">${$('filtroConferencia').value === 'nao' ? '✅ Nenhum registro pendente de conferência.' : 'Nenhum registro encontrado.'}</td></tr>`;
       return;
     }
     tbody.innerHTML = registros.map(r => `
@@ -1086,8 +1090,21 @@
     const r = registrosAdmin.find(x => x.id === id);
     if (!r) return;
     if (r.correcao) { alert("Este registro tem um pedido de correção do vaqueiro.\nAbra o ✏️ para corrigir (ou dispensar o pedido) antes de conferir."); return; }
-    aplicarConferencia([id], r.conferido !== 'Sim');
+    const marcar = r.conferido !== 'Sim';
+    aplicarConferencia([id], marcar);
+    if (marcar && $('filtroConferencia').value === 'nao') mostrarDesfazer(id, r.brincoBezerro);
   }
+  let toastTimer = null;
+  function mostrarDesfazer(id, brinco) {
+    const t = $('toastDesfazer');
+    t.innerHTML = `✅ Bezerro ${esc(brinco)} conferido <button type="button">Desfazer</button>`;
+    t.querySelector('button').onclick = () => { esconderToast(); aplicarConferencia([id], false); };
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(esconderToast, 6000);
+  }
+  function esconderToast() { $('toastDesfazer').style.display = 'none'; }
+
   function conferirFiltrados() {
     const pend = registrosFiltradosAtuais.filter(r => r.conferido !== 'Sim');
     const ids = pend.filter(r => !r.correcao).map(r => r.id);
