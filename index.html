@@ -406,6 +406,7 @@
             <th>Sexo</th>
             <th>Raça</th>
             <th>Situação</th>
+            <th>Enviado em</th>
             <th></th>
           </tr>
         </thead>
@@ -490,6 +491,10 @@
   function hojeISO() {
     const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 10);
+  }
+  function agoraBR() {
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
   function novoId() {
     return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2));
@@ -728,7 +733,7 @@
     const gemeos = $('gemeos').checked;
     const base = {
       brincoVaca, raca: $('raca').value, dataNascimento: $('dataNascimento').value,
-      gemeos, observacoes: $('observacoes').value.trim()
+      gemeos, observacoes: $('observacoes').value.trim(), lancadoEm: agoraBR()
     };
     const novos = [{ id: novoId(), ...base, brincoBezerro, sexo, situacao: $('situacao').value }];
 
@@ -915,7 +920,7 @@
   function renderizarTabelaEscritorio(registros) {
     const tbody = $('corpoTabela');
     if (registros.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">${$('filtroConferencia').value === 'nao' ? '✅ Nenhum registro pendente de conferência.' : 'Nenhum registro encontrado.'}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">${$('filtroConferencia').value === 'nao' ? '✅ Nenhum registro pendente de conferência.' : 'Nenhum registro encontrado.'}</td></tr>`;
       return;
     }
     tbody.innerHTML = registros.map(r => `
@@ -927,6 +932,7 @@
         <td>${esc(r.sexo)}</td>
         <td>${esc(r.raca)}</td>
         <td>${esc(r.situacao)}</td>
+        <td style="white-space:nowrap;">${esc(r.lancadoEm || '-')}</td>
         <td style="white-space:nowrap;">
           <button class="btn-icone" data-acao="editar" data-id="${esc(r.id)}" title="Editar">✏️</button>
           <button class="btn-icone" data-acao="excluir" data-id="${esc(r.id)}" title="Excluir">🗑️</button>
@@ -1118,10 +1124,10 @@
   function exportarCSV() {
     if (!registrosFiltradosAtuais.length) { alert("Não há dados para exportar."); return; }
     const cel = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-    const linhas = [["Data Nascimento", "Brinco Vaca", "Brinco Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Observações", "Conferido"]];
+    const linhas = [["Data Nascimento", "Brinco Vaca", "Brinco Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Observações", "Conferido", "Enviado em"]];
     registrosFiltradosAtuais.forEach(r => linhas.push([
       formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao,
-      r.gemeos === 'Sim' ? gemeoCom(r) : 'Não', r.observacoes, r.conferido === 'Sim' ? 'Sim' : 'Não'
+      r.gemeos === 'Sim' ? gemeoCom(r) : 'Não', r.observacoes, r.conferido === 'Sim' ? 'Sim' : 'Não', r.lancadoEm
     ]));
     const csv = '\ufeff' + linhas.map(l => l.map(cel).join(';')).join('\r\n');
     const a = document.createElement('a');
@@ -1162,12 +1168,12 @@
     doc.line(14, 42, 196, 42);
 
     doc.autoTable({
-      head: [["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação", "Gêmeos"]],
-      body: registrosFiltradosAtuais.map(r => [formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao, gemeoCom(r)]),
+      head: [["Data Nasc.", "Vaca", "Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Enviado em"]],
+      body: registrosFiltradosAtuais.map(r => [formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao, gemeoCom(r), r.lancadoEm || ""]),
       startY: 47,
       theme: 'grid',
       headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 4 }
+      styles: { fontSize: 8, cellPadding: 3 }
     });
 
     doc.save("relatorio_nascimentos_volta_grande.pdf");
