@@ -133,6 +133,11 @@
     tr.nao-conf td:first-child { box-shadow: inset 3px 0 0 #fbbf24; }
     .btn-conf { font-size: 1.15rem; }
     #cardPend h3 { color: #fbbf24; }
+    .box-corr { background: #78350f; color: #fcd34d; border: 1px solid #92400e; border-radius: 8px; padding: 10px; margin-bottom: 12px; font-size: 0.85rem; }
+    .aviso-corr { display: block; color: #fbbf24; font-size: 0.72rem; font-weight: 600; margin-top: 2px; }
+    tr.tem-corr td { background: rgba(239,68,68,0.10); }
+    tr.tem-corr td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+    .btn-corr { background: #374151; color: #fff; border: none; border-radius: 6px; padding: 6px 8px; font-size: 0.7rem; cursor: pointer; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -269,6 +274,7 @@
               <th>Vaca</th>
               <th>Bezerro</th>
               <th>Sexo</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="corpoTabelaVaqueiro"></tbody>
@@ -370,6 +376,7 @@
             <option value="" style="color:#000;">Todos</option>
             <option value="nao" style="color:#000;">Não conferidos</option>
             <option value="sim" style="color:#000;">Conferidos</option>
+            <option value="corr" style="color:#000;">Com correção pedida</option>
           </select>
         </div>
         <div>
@@ -410,9 +417,29 @@
 
 
 <!-- ================= MODAL DE EDIÇÃO (ESCRITÓRIO) ================= -->
+<!-- ================= PEDIDO DE CORREÇÃO (VAQUEIRO) ================= -->
+<div class="modal-overlay" id="modalCorrecao">
+  <div class="modal">
+    <h2>Pedir correção</h2>
+    <p class="subtitle" id="cInfo" style="text-align:left;"></p>
+    <input type="hidden" id="cId">
+    <div class="form-group">
+      <label for="cMsg">O que está errado? *</label>
+      <textarea id="cMsg" rows="3" maxlength="300" placeholder="Ex: o brinco da vaca é 1046, não 1045"></textarea>
+    </div>
+    <p class="subtitle" style="text-align:left;">Você não altera o registro: o escritório recebe o pedido e faz a correção.</p>
+    <div id="erroCorr" style="color: var(--danger); font-size: 0.85rem;"></div>
+    <div class="modal-acoes">
+      <button class="main-btn" style="background:#374151;color:#fff;" onclick="fecharCorrecao()">Cancelar</button>
+      <button class="main-btn" id="btnEnviarCorr" onclick="enviarCorrecao()">Enviar pedido</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalEditar">
   <div class="modal">
     <h2>Editar registro</h2>
+    <div id="boxCorrecao" class="box-corr" style="display:none;"></div>
     <input type="hidden" id="mId">
     <div class="form-group"><label for="mVaca">Brinco da Vaca</label><input type="text" id="mVaca" autocomplete="off"></div>
     <div class="form-group"><label for="mBezerro">Brinco do Bezerro</label><input type="text" id="mBezerro" autocomplete="off"></div>
@@ -750,17 +777,28 @@
   function renderizarTabelaVaqueiro(registros) {
     const tbody = $('corpoTabelaVaqueiro');
     if (registros.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Nenhum registro.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum registro.</td></tr>`;
       return;
     }
-    tbody.innerHTML = registros.map(r => `
+    tbody.innerHTML = registros.map(r => {
+      let acao = '';
+      if (r.pendente) acao = '<span style="font-size:0.7rem;">aguardando envio</span>';
+      else if (r.correcao === 'Sim') acao = '<span class="aviso-corr" style="margin:0;">⚠️ Correção pedida</span>';
+      else if (r.id) acao = `<button class="btn-corr" data-id="${esc(r.id)}">✏️ Pedir correção</button>`;
+      return `
       <tr class="${r.pendente ? 'pendente' : ''}">
         <td>${r.pendente ? '⏳ ' : ''}${esc(formatarDataBR(r.dataNascimento))}</td>
         <td>${esc(r.brincoVaca)}</td>
         <td><b>${esc(r.brincoBezerro)}</b></td>
         <td>${esc(r.sexo)}</td>
-      </tr>`).join('');
+        <td>${acao}</td>
+      </tr>`;
+    }).join('');
   }
+  $('corpoTabelaVaqueiro').addEventListener('click', e => {
+    const b = e.target.closest('button[data-id]');
+    if (b) abrirCorrecao(b.dataset.id);
+  });
 
   function filtrarTabelaVaqueiro() {
     const termo = $('filtroVaqueiro').value.trim().toUpperCase();
@@ -847,7 +885,7 @@
       const okFim = !dataFim || (r.dataNascimento && r.dataNascimento <= dataFim);
       const okBrinco = termo === "" || String(r.brincoBezerro).toUpperCase().includes(termo) || String(r.brincoVaca).toUpperCase().includes(termo);
       const okSexo = filtroSexo === "" || r.sexo === filtroSexo;
-      const okConf = filtroConf === "" || (filtroConf === "sim") === (r.conferido === 'Sim');
+      const okConf = filtroConf === "" || (filtroConf === "corr" ? !!r.correcao : (filtroConf === "sim") === (r.conferido === 'Sim'));
       return okIni && okFim && okBrinco && okSexo && okConf;
     });
 
@@ -877,11 +915,11 @@
       return;
     }
     tbody.innerHTML = registros.map(r => `
-      <tr class="${r.conferido === 'Sim' ? '' : 'nao-conf'}">
+      <tr class="${r.correcao ? 'tem-corr' : (r.conferido === 'Sim' ? '' : 'nao-conf')}">
         <td><button class="btn-icone btn-conf" data-acao="conferir" data-id="${esc(r.id)}" title="${r.conferido === 'Sim' ? 'Conferido em ' + esc(r.conferidoEm) + ' (toque para desfazer)' : 'Não conferido (toque para conferir)'}">${r.conferido === 'Sim' ? '✅' : '⬜'}</button></td>
         <td>${esc(formatarDataBR(r.dataNascimento))}</td>
         <td>${esc(r.brincoVaca)}</td>
-        <td><b>${esc(r.brincoBezerro)}</b>${r.gemeos === 'Sim' ? ' 👯' + (irmaosGemeos(r).length ? ' c/ ' + esc(irmaosGemeos(r).join(', ')) : '') : ''}</td>
+        <td><b>${esc(r.brincoBezerro)}</b>${r.gemeos === 'Sim' ? ' 👯' + (irmaosGemeos(r).length ? ' c/ ' + esc(irmaosGemeos(r).join(', ')) : '') : ''}${r.correcao ? `<span class="aviso-corr">⚠️ Correção pedida (${esc(r.correcaoEm)}): ${esc(r.correcao)}</span>` : ''}</td>
         <td>${esc(r.sexo)}</td>
         <td>${esc(r.raca)}</td>
         <td>${esc(r.situacao)}</td>
@@ -916,7 +954,23 @@
     $('mSituacao').value = r.situacao;
     $('mObs').value = r.observacoes || "";
     $('erroModal').textContent = "";
+    const box = $('boxCorrecao');
+    if (r.correcao) {
+      box.innerHTML = `<b>⚠️ O vaqueiro pediu correção</b> (${esc(r.correcaoEm)})<br>${esc(r.correcao)}<br>` +
+        `<button type="button" class="btn-corr" style="margin-top:8px;" onclick="dispensarCorrecao()">Dispensar pedido (nada a corrigir)</button>` +
+        `<div style="font-size:0.75rem;margin-top:6px;">Ao salvar as alterações, o pedido é encerrado.</div>`;
+      box.style.display = 'block';
+    } else { box.style.display = 'none'; box.innerHTML = ''; }
     $('modalEditar').classList.add('aberto');
+  }
+  async function dispensarCorrecao() {
+    if (!confirm("Dispensar o pedido de correção? O registro continua como está.")) return;
+    try {
+      const r = await api({ acao: 'resolverCorrecao', senha: senhaAdmin, id: $('mId').value });
+      if (r.status === 'sucesso') { fecharEdicao(); carregarDadosEscritorio(); }
+      else if (r.codigo === 'senha') { fecharEdicao(); sessaoExpirada(); }
+      else $('erroModal').textContent = r.mensagem || "Erro ao dispensar.";
+    } catch (e) { $('erroModal').textContent = "Sem conexão. Tente novamente."; }
   }
   function fecharEdicao() { $('modalEditar').classList.remove('aberto'); }
 
@@ -963,6 +1017,41 @@
     }
   }
 
+  // ---------- pedido de correção (vaqueiro) ----------
+  function abrirCorrecao(id) {
+    const r = todosRegistros.find(x => x.id === id);
+    if (!r) return;
+    $('cId').value = id;
+    $('cInfo').textContent = `Bezerro ${r.brincoBezerro} - vaca ${r.brincoVaca} - ${formatarDataBR(r.dataNascimento)} - ${r.sexo}`;
+    $('cMsg').value = "";
+    $('erroCorr').textContent = "";
+    $('modalCorrecao').classList.add('aberto');
+  }
+  function fecharCorrecao() { $('modalCorrecao').classList.remove('aberto'); }
+  async function enviarCorrecao() {
+    const msg = $('cMsg').value.trim();
+    if (!msg) { $('erroCorr').textContent = "Escreva o que está errado."; return; }
+    const btn = $('btnEnviarCorr');
+    btn.disabled = true; btn.textContent = "Enviando...";
+    try {
+      const r = await api({ acao: 'corrigir', id: $('cId').value, mensagem: msg });
+      if (r.status === 'sucesso') {
+        const reg = todosRegistros.find(x => x.id === $('cId').value);
+        if (reg) reg.correcao = 'Sim';
+        fecharCorrecao();
+        filtrarTabelaVaqueiro();
+        alert("Pedido enviado! O escritório vai corrigir o registro.");
+        sincronizarSistema();
+      } else {
+        $('erroCorr').textContent = r.mensagem || "Não foi possível enviar.";
+      }
+    } catch (e) {
+      $('erroCorr').textContent = "Sem conexão. O pedido precisa de internet; tente de novo quando tiver sinal.";
+    } finally {
+      btn.disabled = false; btn.textContent = "Enviar pedido";
+    }
+  }
+
   // ---------- gêmeos: quem é o irmão ----------
   function irmaosGemeos(r) {
     if (r.gemeos !== 'Sim') return [];
@@ -995,12 +1084,16 @@
   }
   function alternarConferencia(id) {
     const r = registrosAdmin.find(x => x.id === id);
-    if (r) aplicarConferencia([id], r.conferido !== 'Sim');
+    if (!r) return;
+    if (r.correcao) { alert("Este registro tem um pedido de correção do vaqueiro.\nAbra o ✏️ para corrigir (ou dispensar o pedido) antes de conferir."); return; }
+    aplicarConferencia([id], r.conferido !== 'Sim');
   }
   function conferirFiltrados() {
-    const ids = registrosFiltradosAtuais.filter(r => r.conferido !== 'Sim').map(r => r.id);
-    if (!ids.length) { alert("Não há registros pendentes na lista atual."); return; }
-    if (!confirm(`Marcar ${ids.length} registro(s) da lista atual como CONFERIDO(S)?`)) return;
+    const pend = registrosFiltradosAtuais.filter(r => r.conferido !== 'Sim');
+    const ids = pend.filter(r => !r.correcao).map(r => r.id);
+    const comCorr = pend.length - ids.length;
+    if (!ids.length) { alert(comCorr ? "Os registros pendentes têm pedido de correção. Resolva-os antes de conferir." : "Não há registros pendentes na lista atual."); return; }
+    if (!confirm(`Marcar ${ids.length} registro(s) da lista atual como CONFERIDO(S)?` + (comCorr ? `\n(${comCorr} com pedido de correção ficam de fora.)` : ""))) return;
     aplicarConferencia(ids, true);
   }
 
