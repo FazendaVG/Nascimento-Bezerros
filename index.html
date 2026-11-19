@@ -110,6 +110,16 @@
     tr.pendente td { color: #fbbf24; }
     .erro-lista { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; border-radius: 8px; padding: 10px; margin-bottom: 14px; font-size: 0.8rem; }
     .erro-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+    /* foto do bezerro */
+    .foto-botoes { display: flex; gap: 8px; }
+    .btn-foto { flex: 1; text-align: center; padding: 12px 8px; border-radius: 10px; background: #1f2937; border: 1px solid #374151; color: #f3f4f6; font-size: 0.95rem; cursor: pointer; }
+    .btn-foto:active { background: #064e3b; }
+    .foto-grupo.obrigatoria .btn-foto { border-color: #f59e0b; }
+    .foto-grupo.falta { outline: 2px solid var(--danger); outline-offset: 4px; border-radius: 10px; }
+    .foto-previa { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+    .foto-previa img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 2px solid #22c55e; }
+    .foto-previa button { background: none; border: 1px solid #6b7280; color: #e5e7eb; border-radius: 8px; padding: 6px 10px; font-size: 0.85rem; }
+    .link-foto { text-decoration: none; margin-left: 4px; }
     .btn-icone { background: none; border: none; color: inherit; font-size: 1rem; cursor: pointer; padding: 4px; }
     .erro-item .btn-icone { font-size: 0.75rem; text-decoration: underline; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 50; padding: 12px; overflow-y: auto; }
@@ -232,6 +242,15 @@
           </select>
         </div>
 
+        <div class="form-group foto-grupo" id="grupoFoto1">
+          <label id="lblFoto1">📷 Foto do bezerro (opcional)</label>
+          <div class="foto-botoes">
+            <label class="btn-foto">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-n="1" onchange="escolherFoto(this)" hidden></label>
+            <label class="btn-foto">🖼️ Da galeria<input type="file" accept="image/*" data-n="1" onchange="escolherFoto(this)" hidden></label>
+          </div>
+          <div class="foto-previa" id="previaFoto1"></div>
+        </div>
+
         <div class="form-group">
           <label class="check-gemeos"><input type="checkbox" id="gemeos"> 👯 Parto de gêmeos (a mesma vaca teve 2 bezerros)</label>
         </div>
@@ -253,6 +272,14 @@
             <label for="situacao2">Situação do 2º Bezerro *</label>
             <select id="situacao2"></select>
           </div>
+          <div class="form-group foto-grupo" id="grupoFoto2">
+          <label id="lblFoto2">📷 Foto do 2º bezerro (opcional)</label>
+          <div class="foto-botoes">
+            <label class="btn-foto">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-n="2" onchange="escolherFoto(this)" hidden></label>
+            <label class="btn-foto">🖼️ Da galeria<input type="file" accept="image/*" data-n="2" onchange="escolherFoto(this)" hidden></label>
+          </div>
+          <div class="foto-previa" id="previaFoto2"></div>
+        </div>
           <div class="subtitle" style="text-align:left; margin:0;">Raça, data e observações valem para os dois.</div>
         </div>
 
@@ -471,6 +498,7 @@
     <div class="form-group"><label class="check-gemeos"><input type="checkbox" id="mGemeos"> 👯 Parto de gêmeos</label></div>
     <div class="form-group"><label for="mSituacao">Situação</label><select id="mSituacao"></select></div>
     <div class="form-group"><label for="mObs">Observações</label><textarea id="mObs" rows="2"></textarea></div>
+    <div id="mFoto" style="margin-bottom:10px;"></div>
     <div id="erroModal" style="color: var(--danger); font-size: 0.85rem;"></div>
     <div class="modal-acoes">
       <button class="main-btn" style="background:#374151;color:#fff;" onclick="fecharEdicao()">Cancelar</button>
@@ -520,9 +548,9 @@
     const p = dataIso.split("-");
     return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataIso;
   }
-  async function api(corpo) {
+  async function api(corpo, limiteMs) {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 20000);
+    const t = setTimeout(() => ctrl.abort(), limiteMs || 20000);
     try {
       const r = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(corpo), signal: ctrl.signal });
       return await r.json();
@@ -635,18 +663,96 @@
     brincosEmUso = new Set(c.brincos || []);
   }
 
+  // =========================================================================
+  // FOTO DO BEZERRO: opcional; OBRIGATÓRIA em natimorto/aborto.
+  // A foto é reduzida (máx. 1280 px) e recebe um carimbo com data/hora.
+  // Sem internet ela fica guardada no aparelho (IndexedDB) junto com a fila.
+  // =========================================================================
+  let avisoTemporario = '';
+  const fotoSel = { 1: '', 2: '' };
+  function abrirBanco() {
+    return new Promise((ok, erro) => {
+      const r = indexedDB.open('vg_fotos', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('fotos');
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => erro(r.error);
+    });
+  }
+  async function fotoOp(modo, fn) {
+    const db = await abrirBanco();
+    return new Promise((ok, erro) => {
+      const tx = db.transaction('fotos', modo), req = fn(tx.objectStore('fotos'));
+      tx.oncomplete = () => { db.close(); ok(req.result); };
+      tx.onerror = tx.onabort = () => { db.close(); erro(tx.error); };
+    });
+  }
+  const fotoGuardar = (id, v) => fotoOp('readwrite', st => st.put(v, id));
+  const fotoLer = id => fotoOp('readonly', st => st.get(id)).catch(() => '');
+  const fotoApagar = id => fotoOp('readwrite', st => st.delete(id)).catch(() => {});
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  function prepararFoto(arquivo) {
+    return new Promise((ok, erro) => {
+      const url = URL.createObjectURL(arquivo), img = new Image();
+      img.onload = () => {
+        const fator = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * fator), h = Math.round(img.naturalHeight * fator);
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const g = cv.getContext('2d');
+        g.drawImage(img, 0, 0, w, h);
+        // carimbo: fazenda + data/hora em que a foto foi anexada
+        const fs = Math.max(14, Math.round(h * 0.035)), barra = Math.round(fs * 1.7);
+        g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(0, h - barra, w, barra);
+        g.fillStyle = '#fff'; g.font = `bold ${fs}px sans-serif`; g.textBaseline = 'middle';
+        g.fillText('Fazenda Volta Grande · ' + agoraBR(), Math.round(fs * 0.6), h - barra / 2);
+        URL.revokeObjectURL(url);
+        ok(cv.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); erro(new Error('não abriu')); };
+      img.src = url;
+    });
+  }
+  async function escolherFoto(inp) {
+    const n = inp.dataset.n, arq = inp.files && inp.files[0];
+    inp.value = '';
+    if (!arq) return;
+    $('previaFoto' + n).innerHTML = '<span style="font-size:0.85rem;color:#a1a1aa;">Preparando foto...</span>';
+    try { fotoSel[n] = await prepararFoto(arq); }
+    catch (e) { fotoSel[n] = ''; mostrarAlertaCampo("Não foi possível abrir essa foto. Tente tirar outra.", "erro"); }
+    renderFoto(n);
+  }
+  function removerFoto(n) { fotoSel[n] = ''; renderFoto(n); }
+  function renderFoto(n) {
+    $('previaFoto' + n).innerHTML = fotoSel[n]
+      ? `<img src="${fotoSel[n]}" alt="Foto do bezerro"><button type="button" onclick="removerFoto(${n})">Remover foto</button>`
+      : '';
+    if (fotoSel[n]) $('grupoFoto' + n).classList.remove('falta');
+  }
+  function limparFotos() { removerFoto(1); removerFoto(2); }
+  function htmlLinkFoto(r) {
+    return /^https:\/\//.test(r.foto || '') ? ` <a class="link-foto" href="${esc(r.foto)}" target="_blank" rel="noopener" title="Ver foto">📷</a>` : '';
+  }
+
   // Envia, um por um, os lançamentos guardados no aparelho
   async function enviarFila() {
     if (enviando) return;
     enviando = true;
+    avisoTemporario = '';
     try {
       let fila = lerFila();
       while (fila.length) {
         const item = fila[0];
+        const corpo = { acao: 'criar', ...item.dados };
+        if (item.foto) corpo.foto = item.fotoInline || (await fotoLer(item.dados.id)) || '';
         let res;
-        try { res = await api({ acao: 'criar', ...item.dados }); }
+        // com foto o envio demora mais (internet fraca no campo): espera até 90 s
+        try { res = await api(corpo, corpo.foto ? 90000 : 20000); }
         catch (e) { online = false; break; }   // sem internet: tenta de novo depois
         online = true;
+        if (res.status !== 'sucesso' && res.temporario) {
+          avisoTemporario = res.mensagem;       // problema no servidor: mantém na fila
+          break;
+        }
         if (res.status === 'sucesso') {
           brincosEmUso.add(item.dados.brincoBezerro);
         } else {
@@ -656,6 +762,7 @@
         }
         fila = lerFila().filter(p => p.dados.id !== item.dados.id);
         gravarLS(LS_FILA, fila);
+        if (item.foto) await fotoApagar(item.dados.id);
       }
     } finally {
       enviando = false;
@@ -718,6 +825,7 @@
       $('sexo2').value = "";
       $('situacao2').selectedIndex = 0;
       $('blocoGemeo').querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
+      removerFoto(2);
     }
     atualizarSemBrinco();
   }
@@ -745,6 +853,11 @@
     $('lblBrinco2').textContent = 'Brinco do 2º Bezerro (gêmeo) ' + (ok2 ? '(opcional: sem brinco)' : '*');
     $('lblSexo2').textContent = 'Sexo do 2º Bezerro ' + (s2 === 'Aborto' ? '(opcional)' : '*');
     $('brincoBezerro2').placeholder = ok2 ? 'Deixe em branco se não tiver brinco' : 'Ex: 503';
+    [[1, ok1, ''], [2, ok2, '2º ']].forEach(([n, morto, p]) => {
+      $('lblFoto' + n).textContent = `📷 Foto do ${p}bezerro ` + (morto ? '* (obrigatória: bezerro morto)' : '(opcional)');
+      $('grupoFoto' + n).classList.toggle('obrigatoria', morto);
+      if (!morto) $('grupoFoto' + n).classList.remove('falta');
+    });
   }
   $('situacao').addEventListener('change', atualizarSemBrinco);
   $('situacao2').addEventListener('change', atualizarSemBrinco);
@@ -812,6 +925,16 @@
       novos.push({ id: novoId(), ...base, brincoBezerro: brinco2, sexo: sexo2, situacao: situacao2 });
     }
 
+    // foto obrigatória para bezerro morto
+    for (let i = 0; i < novos.length; i++) {
+      if (SEM_BRINCO_OK.includes(novos[i].situacao) && !fotoSel[i + 1]) {
+        $('grupoFoto' + (i + 1)).classList.add('falta');
+        $('grupoFoto' + (i + 1)).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        mostrarAlertaCampo(`Tire a foto do ${i ? '2º ' : ''}bezerro morto (${novos[i].situacao.toLowerCase()}) antes de salvar.`, "erro");
+        return;
+      }
+    }
+
     // confere cada bezerro (o 1º já conta como pendente na checagem do 2º)
     const acumulado = fila.slice();
     for (const n of novos) {
@@ -820,14 +943,27 @@
       acumulado.push({ dados: n });
     }
 
-    // 1) guarda no aparelho (nunca perde o lançamento)
-    novos.forEach(n => fila.push({ dados: n, criadoEm: Date.now() }));
+    // 1) guarda no aparelho (nunca perde o lançamento); foto vai para o banco do aparelho
+    const itens = [];
+    for (let i = 0; i < novos.length; i++) {
+      const item = { dados: novos[i], criadoEm: Date.now() };
+      const foto = fotoSel[i + 1];
+      if (foto) {
+        item.foto = true;
+        try { await fotoGuardar(novos[i].id, foto); }
+        catch (err) { item.fotoInline = foto; }   // sem IndexedDB: vai junto com a fila
+      }
+      itens.push(item);
+    }
+    itens.forEach(it => fila.push(it));
     if (!gravarLS(LS_FILA, fila)) {
       mostrarAlertaCampo("Não foi possível salvar no aparelho (memória cheia ou navegação privada).", "erro");
+      novos.forEach(n => fotoApagar(n.id));
       return;
     }
 
     $('nascimentoForm').reset();
+    limparFotos();
     document.querySelectorAll('#nascimentoForm .radio-btn').forEach(b => b.classList.remove('active'));
     $('sexo').value = "";
     $('dataNascimento').value = hojeISO();
@@ -844,6 +980,7 @@
     const aindaNaFila = lerFila().some(p => ids.includes(p.dados.id));
     const comErro = lerLS(LS_ERROS, []).find(x => ids.includes(x.dados.id));
     if (comErro) mostrarAlertaCampo(`Bezerro ${comErro.dados.brincoBezerro} NÃO foi aceito: ${comErro.mensagem}`, "erro");
+    else if (aindaNaFila && avisoTemporario) mostrarAlertaCampo(avisoTemporario, "aviso");
     else if (aindaNaFila) mostrarAlertaCampo(`Sem conexão. ${rotulo} salvo(s) no aparelho e será(ão) enviado(s) quando houver internet.`, "aviso");
     else mostrarAlertaCampo(`${rotulo} registrado(s) com sucesso!`, "sucesso");
     sincronizarSistema();
@@ -1017,7 +1154,7 @@
         <td><button class="btn-icone btn-conf" data-acao="conferir" data-id="${esc(r.id)}" title="${r.conferido === 'Sim' ? 'Conferido em ' + esc(r.conferidoEm) + ' (toque para desfazer)' : 'Não conferido (toque para conferir)'}">${r.conferido === 'Sim' ? '✅' : '⬜'}</button></td>
         <td>${esc(formatarDataBR(r.dataNascimento))}</td>
         <td>${esc(r.brincoVaca)}</td>
-        <td><b>${htmlBrinco(r.brincoBezerro)}</b>${r.gemeos === 'Sim' ? ' 👯' + (irmaosGemeos(r).length ? ' c/ ' + esc(irmaosGemeos(r).join(', ')) : '') : ''}${r.correcao ? `<span class="aviso-corr">⚠️ Correção pedida (${esc(r.correcaoEm)}): ${esc(r.correcao)}</span>` : ''}</td>
+        <td><b>${htmlBrinco(r.brincoBezerro)}</b>${htmlLinkFoto(r)}${r.gemeos === 'Sim' ? ' 👯' + (irmaosGemeos(r).length ? ' c/ ' + esc(irmaosGemeos(r).join(', ')) : '') : ''}${r.correcao ? `<span class="aviso-corr">⚠️ Correção pedida (${esc(r.correcaoEm)}): ${esc(r.correcao)}</span>` : ''}</td>
         <td>${esc(r.sexo)}</td>
         <td>${esc(r.raca)}</td>
         <td>${esc(r.situacao)}</td>
@@ -1052,6 +1189,7 @@
     $('mGemeos').checked = r.gemeos === 'Sim';
     $('mSituacao').value = r.situacao;
     $('mObs').value = r.observacoes || "";
+    $('mFoto').innerHTML = htmlLinkFoto(r) ? `<a href="${esc(r.foto)}" target="_blank" rel="noopener" style="color:#22c55e;">📷 Ver foto do bezerro</a>` : '';
     $('erroModal').textContent = "";
     const box = $('boxCorrecao');
     if (r.correcao) {
@@ -1220,10 +1358,10 @@
   function exportarCSV() {
     if (!registrosFiltradosAtuais.length) { alert("Não há dados para exportar."); return; }
     const cel = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-    const linhas = [["Data Nascimento", "Brinco Vaca", "Brinco Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Observações", "Conferido", "Enviado em"]];
+    const linhas = [["Data Nascimento", "Brinco Vaca", "Brinco Bezerro", "Sexo", "Raça", "Situação", "Gêmeos", "Observações", "Conferido", "Enviado em", "Foto"]];
     registrosFiltradosAtuais.forEach(r => linhas.push([
       formatarDataBR(r.dataNascimento), r.brincoVaca, r.brincoBezerro, r.sexo, r.raca, r.situacao,
-      r.gemeos === 'Sim' ? gemeoCom(r) : 'Não', r.observacoes, r.conferido === 'Sim' ? 'Sim' : 'Não', r.lancadoEm
+      r.gemeos === 'Sim' ? gemeoCom(r) : 'Não', r.observacoes, r.conferido === 'Sim' ? 'Sim' : 'Não', r.lancadoEm, r.foto || ''
     ]));
     const csv = '\ufeff' + linhas.map(l => l.map(cel).join(';')).join('\r\n');
     const a = document.createElement('a');
