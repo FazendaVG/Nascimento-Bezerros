@@ -45,6 +45,8 @@
     .btn-escritorio { background: #374151; color: #fff; border: 1px solid #4b5563; }
     .btn-capa:active { opacity: 0.85; }
 
+    .btn-notif { background: #1f2937; border: 1px solid #374151; color: #e5e7eb; border-radius: 8px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer; margin-left: 10px; }
+    .btn-notif.ativo { border-color: #22c55e; color: #22c55e; }
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 10px; }
     .btn-voltar { background: none; border: none; color: #9ca3af; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
 
@@ -342,7 +344,7 @@
   <div id="secaoEscritorio" style="display: none;">
     <div class="top-bar">
       <button class="btn-voltar" onclick="voltarCapa()">← Sair do Painel</button>
-      <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande<button class="btn-voltar" id="btnTelaCheia" onclick="alternarTelaCheia()">⛶ Tela cheia</button></span>
+      <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Gestão Volta Grande<button class="btn-notif" id="btnNotif" onclick="ativarNotificacoes()" style="display:none;">🔕 Ativar notificações</button><button class="btn-voltar" id="btnTelaCheia" onclick="alternarTelaCheia()">⛶ Tela cheia</button></span>
     </div>
     <h2>Relatórios e Gráficos</h2>
     <div class="painel-grid"><div class="painel-esq">
@@ -598,6 +600,99 @@
   if (!document.documentElement.requestFullscreen) $('btnTelaCheia').style.display = 'none';
   function irParaCampo() { mostrarSecao('campo'); sincronizarSistema(); }
   function irParaLogin() { mostrarSecao('login'); }
+  // endereço do app sem "#..." e sem "?..." (vai junto no lançamento para a notificação abrir aqui)
+  function urlDoApp() { return location.href.split('#')[0].split('?')[0]; }
+  // aberto pela notificação: vai direto para a Gestão (entra sozinho se a senha ainda estiver na sessão)
+  function abrirPelaNotificacao() {
+    if (location.hash !== '#gestao') return;
+    history.replaceState(null, '', urlDoApp());
+    if (senhaAdmin) { mostrarSecao('escritorio'); carregarDadosEscritorio(); }
+    else irParaLogin();
+  }
+  window.addEventListener('hashchange', abrirPelaNotificacao);
+
+  // =========================================================================
+  // NOTIFICAÇÕES NO CELULAR DO ESCRITÓRIO (OneSignal)
+  // O vaqueiro não recebe nada: só quem toca em "Ativar notificações" na Gestão.
+  // O arquivo push/onesignal/OneSignalSDKWorker.js precisa estar no GitHub.
+  // =========================================================================
+  let pushAppId = '', pushPronto = null;
+  function carregarOneSignal() {
+    if (pushPronto) return pushPronto;
+    pushPronto = new Promise((ok, erro) => {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      const base = location.pathname.replace(/[^/]*$/, '');          // ex.: "/nascimentos/"
+      OneSignalDeferred.push(async OneSignal => {
+        try {
+          await OneSignal.init({
+            appId: pushAppId,
+            serviceWorkerPath: base.slice(1) + 'push/onesignal/OneSignalSDKWorker.js',
+            serviceWorkerParam: { scope: base + 'push/onesignal/' }
+          });
+          ok(OneSignal);
+        } catch (e) { erro(e); }
+      });
+      const sc = document.createElement('script');
+      sc.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+      sc.defer = true;
+      sc.onerror = () => erro(new Error('sem internet para carregar as notificações'));
+      document.head.appendChild(sc);
+    });
+    pushPronto.catch(() => { pushPronto = null; });
+    return pushPronto;
+  }
+  function pushSuportado() { return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window; }
+  function mostrarEstadoNotif(ativo) {
+    const b = $('btnNotif');
+    b.style.display = pushAppId ? 'inline-block' : 'none';
+    b.classList.toggle('ativo', !!ativo);
+    b.textContent = ativo ? '🔔 Notificações ativas' : '🔕 Ativar notificações';
+  }
+  async function prepararNotificacoes(appId) {
+    pushAppId = appId;
+    if (!appId) { mostrarEstadoNotif(false); return; }
+    const jaPermitido = pushSuportado() && Notification.permission === 'granted';
+    mostrarEstadoNotif(false);
+    if (!jaPermitido) return;
+    try {   // já tinha ativado: confere a inscrição e renova a etiqueta "gestao"
+      const OneSignal = await carregarOneSignal();
+      const ativo = OneSignal.User.PushSubscription.optedIn;
+      if (ativo) OneSignal.User.addTag('papel', 'gestao');
+      mostrarEstadoNotif(ativo);
+    } catch (e) { console.log(e); }
+  }
+  async function ativarNotificacoes() {
+    if (!pushSuportado()) {
+      const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      alert(ios
+        ? 'No iPhone as notificações só funcionam com o app instalado na tela de início:\n' +
+          'no Safari toque em Compartilhar > "Adicionar à Tela de Início", abra o app pelo ícone e toque em "Ativar notificações" de novo.\n(precisa iOS 16.4 ou mais novo)'
+        : 'Este navegador não aceita notificações. Use o Google Chrome.');
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      alert('As notificações deste app estão BLOQUEADAS no celular.\nLibere em: Configurações do navegador > Configurações do site > Notificações, e tente de novo.');
+      return;
+    }
+    const b = $('btnNotif');
+    b.disabled = true; b.textContent = '⏳ Ativando...';
+    try {
+      const OneSignal = await carregarOneSignal();
+      if (!OneSignal.Notifications.permission) await OneSignal.Notifications.requestPermission();
+      if (!OneSignal.User.PushSubscription.optedIn) await OneSignal.User.PushSubscription.optIn();
+      const ativo = OneSignal.Notifications.permission && OneSignal.User.PushSubscription.optedIn;
+      if (ativo) {
+        OneSignal.User.addTag('papel', 'gestao');
+        alert('Pronto! Este aparelho vai receber uma notificação a cada lançamento do vaqueiro.');
+      } else {
+        alert('As notificações não foram permitidas neste aparelho.');
+      }
+      mostrarEstadoNotif(ativo);
+    } catch (e) {
+      alert('Não foi possível ativar as notificações: ' + (e.message || e));
+      mostrarEstadoNotif(false);
+    } finally { b.disabled = false; }
+  }
   function voltarCapa() {
     mostrarSecao('capa');
     senhaAdmin = ""; sessionStorage.removeItem(SS_SENHA);
@@ -742,7 +837,7 @@
       let fila = lerFila();
       while (fila.length) {
         const item = fila[0];
-        const corpo = { acao: 'criar', ...item.dados };
+        const corpo = { acao: 'criar', ...item.dados, appUrl: urlDoApp() };
         if (item.foto) corpo.foto = item.fotoInline || (await fotoLer(item.dados.id)) || '';
         let res;
         // com foto o envio demora mais (internet fraca no campo): espera até 90 s
@@ -800,6 +895,7 @@
   renderErros();
   filtrarTabelaVaqueiro();
   sincronizarSistema();
+  abrirPelaNotificacao();
 
   // =========================================================================
   // MODO VAQUEIRO
@@ -835,6 +931,7 @@
   // "SB-..."). No aborto o sexo também pode ficar em branco ("Não identificado").
   const SEM_BRINCO_OK = ['Natimorto', 'Aborto'];
   const SEXO_NAO_ID = 'Não identificado';
+  const FOTO_OBRIGATORIA = ['Natimorto'];   // foto obrigatória só no natimorto
   function codigoSemBrinco() {
     return 'SB-' + novoId().replace(/[^0-9a-f]/gi, '').slice(-6).toUpperCase();
   }
@@ -853,8 +950,8 @@
     $('lblBrinco2').textContent = 'Brinco do 2º Bezerro (gêmeo) ' + (ok2 ? '(opcional: sem brinco)' : '*');
     $('lblSexo2').textContent = 'Sexo do 2º Bezerro ' + (s2 === 'Aborto' ? '(opcional)' : '*');
     $('brincoBezerro2').placeholder = ok2 ? 'Deixe em branco se não tiver brinco' : 'Ex: 503';
-    [[1, ok1, ''], [2, ok2, '2º ']].forEach(([n, morto, p]) => {
-      $('lblFoto' + n).textContent = `📷 Foto do ${p}bezerro ` + (morto ? '* (obrigatória: bezerro morto)' : '(opcional)');
+    [[1, FOTO_OBRIGATORIA.includes(s1), ''], [2, FOTO_OBRIGATORIA.includes(s2), '2º ']].forEach(([n, morto, p]) => {
+      $('lblFoto' + n).textContent = `📷 Foto do ${p}bezerro ` + (morto ? '* (obrigatória: natimorto)' : '(opcional)');
       $('grupoFoto' + n).classList.toggle('obrigatoria', morto);
       if (!morto) $('grupoFoto' + n).classList.remove('falta');
     });
@@ -925,12 +1022,12 @@
       novos.push({ id: novoId(), ...base, brincoBezerro: brinco2, sexo: sexo2, situacao: situacao2 });
     }
 
-    // foto obrigatória para bezerro morto
+    // foto obrigatória para natimorto
     for (let i = 0; i < novos.length; i++) {
-      if (SEM_BRINCO_OK.includes(novos[i].situacao) && !fotoSel[i + 1]) {
+      if (FOTO_OBRIGATORIA.includes(novos[i].situacao) && !fotoSel[i + 1]) {
         $('grupoFoto' + (i + 1)).classList.add('falta');
         $('grupoFoto' + (i + 1)).scrollIntoView({ behavior: 'smooth', block: 'center' });
-        mostrarAlertaCampo(`Tire a foto do ${i ? '2º ' : ''}bezerro morto (${novos[i].situacao.toLowerCase()}) antes de salvar.`, "erro");
+        mostrarAlertaCampo(`Tire a foto do ${i ? '2º ' : ''}bezerro natimorto antes de salvar.`, "erro");
         return;
       }
     }
@@ -1062,6 +1159,7 @@
       if (r.status === 'sucesso') {
         registrosAdmin = r.registros || [];
         aplicarFiltrosEOrdenacao();
+        prepararNotificacoes(r.pushAppId || '');
       } else if (r.codigo === 'senha') {
         sessaoExpirada();
       } else {
@@ -1278,7 +1376,7 @@
     const btn = $('btnEnviarCorr');
     btn.disabled = true; btn.textContent = "Enviando...";
     try {
-      const r = await api({ acao: 'corrigir', id: $('cId').value, mensagem: msg });
+      const r = await api({ acao: 'corrigir', id: $('cId').value, mensagem: msg, appUrl: urlDoApp() });
       if (r.status === 'sucesso') {
         const reg = todosRegistros.find(x => x.id === $('cId').value);
         if (reg) reg.correcao = 'Sim';
